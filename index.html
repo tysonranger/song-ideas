@@ -190,6 +190,10 @@ async function load(){
   ideas = await getAll('ideas');
   const m = await get('meta', 'lastBackup');
   lastBackup = m ? m.v : null;
+  const d = await get('meta', 'dbx');
+  dbx = d ? d.v : null;
+  const o = await get('meta', 'ops');
+  dbxOps = o ? o.v : [];
   render();
 }
 async function saveIdea(idea){
@@ -198,6 +202,7 @@ async function saveIdea(idea){
   const i = ideas.findIndex((x) => x.id === idea.id);
   if (i >= 0) ideas[i] = idea; else ideas.push(idea);
   askPersist();
+  scheduleSync();
 }
 
 /* ---------- helpers ---------- */
@@ -225,7 +230,7 @@ function render(){
   const list = $('list');
   const sorted = ideas.slice().sort((a, b) => b.at - a.at);
   const shown = sorted.filter(matches);
-  $('count').textContent = ideas.length ? `${ideas.length} idea${ideas.length === 1 ? '' : 's'} · works with no signal` : 'Works with no signal';
+  $('count').textContent = countText();
   $('search').classList.toggle('hidden', ideas.length < 6 && !query);
   $('cols').classList.toggle('hidden', !shown.length);
   renderBanner();
@@ -254,12 +259,21 @@ function render(){
 }
 function renderBanner(){
   const b = $('banner');
-  const week = 7 * 24 * 3600 * 1000;
-  const changedSince = ideas.some((i) => !lastBackup || i.upd > lastBackup);
-  if (ideas.length && changedSince && (!lastBackup || Date.now() - lastBackup > week)){
-    b.innerHTML = `<div class="banner"><span>${lastBackup ? 'Last backup was ' + Math.floor((Date.now() - lastBackup) / 864e5) + ' days ago.' : 'Your ideas live only on this phone.'} Back them up to Dropbox when you have signal.</span><button id="bannerBk">Back up</button></div>`;
-    $('bannerBk').onclick = backup;
+  if (!dbx || !dbx.refresh){
+    b.innerHTML = `<div class="banner"><span>Connect Dropbox so every idea is saved as its own folder, with its notes and recordings.</span><button id="bannerBk">Connect</button></div>`;
+    $('bannerBk').onclick = dbxConnect;
+  } else if (dbx.broken){
+    b.innerHTML = `<div class="banner"><span>Dropbox needs you to sign in again. Your ideas are safe on this phone until you do.</span><button id="bannerBk">Reconnect</button></div>`;
+    $('bannerBk').onclick = dbxConnect;
   } else b.innerHTML = '';
+}
+function countText(){
+  const n = ideas.length ? `${ideas.length} idea${ideas.length === 1 ? '' : 's'}` : 'Works with no signal';
+  if (!dbx || !dbx.refresh || dbx.broken) return ideas.length ? n + ' · works with no signal' : n;
+  if (syncing) return n + ' · saving to Dropbox…';
+  const waiting = pendingCount();
+  if (!waiting) return n + ' · saved to Dropbox ✓';
+  return n + (navigator.onLine ? ` · ${waiting} waiting for Dropbox` : ` · ${waiting} to save when you have signal`);
 }
 
 /* ---------- sheets ---------- */
@@ -327,7 +341,8 @@ function editTitle(idea){
       for (const t of idea.takes) await del('audio', t.id);
       await del('ideas', idea.id);
       ideas = ideas.filter((x) => x.id !== idea.id);
-      render(); toast('Idea deleted');
+      if (idea.sync && idea.sync.folder) await queueOp({ op: 'delete', path: DBX_ROOT + '/' + idea.sync.folder });
+      render(); toast('Idea deleted'); scheduleSync();
     })
   });
 }
@@ -498,7 +513,7 @@ async function finishRecording(){
   const idea = ideas.find((x) => x.id === s.idea.id) || s.idea;
   const nums = idea.takes.map((t) => (/^Take (\d+)$/.exec(t.name) || [])[1]).filter(Boolean).map(Number);
   const next = nums.length ? Math.max(...nums) + 1 : idea.takes.length + 1;
-  idea.takes.push({ id, name: 'Take ' + next, dur, at: Date.now() });
+  idea.takes.push({ id, name: 'Take ' + next, dur, at: Date.now(), ext: extFor(type) });
   freshId = idea.id;
   await saveIdea(idea);
   render();
@@ -552,24 +567,250 @@ function restore(){
       for (const i of data.ideas) await put('ideas', i);
       await load();
       toast('Backup restored');
+      scheduleSync();
     });
   };
   inp.click();
 }
 function menu(){
   const since = lastBackup ? 'Last: ' + new Date(lastBackup).toLocaleDateString() : 'Never';
+  const connected = dbx && dbx.refresh && !dbx.broken;
+  const dbxRow = connected
+    ? `<button class="menuitem" id="msync">Save to Dropbox now <small>${dbx.lastSync ? 'Last: ' + new Date(dbx.lastSync).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'Not yet'}</small></button>`
+    : `<button class="menuitem" id="mconnect">Connect Dropbox</button>`;
   openSheet(`<h2>Song Ideas</h2>
-    <button class="menuitem" id="mbk">Back up to Dropbox or Files <small>${esc(since)}</small></button>
-    <button class="menuitem" id="mrs">Restore from a backup</button>
+    ${dbxRow}
+    <button class="menuitem" id="mbk">Back up everything as one file <small>${esc(since)}</small></button>
+    <button class="menuitem" id="mrs">Restore from a backup file</button>
     <button class="menuitem" id="msearch">Search ideas</button>
-    <p class="hint">Everything is saved on this phone, so it works underground with no signal. Back up now and then: tap <b>Back up</b>, then choose <b>Save to Files › Dropbox</b>.<br><br>Tip: hold down a recording to rename, share or delete it. Tap a note or an idea name to edit it.</p>
+    <p class="hint">Everything is saved on this phone first, so it works underground with no signal. ${connected ? 'Each idea is also copied to Dropbox › 01 Music › Songwriting › Song Ideas as its own folder, whenever you have signal.' : 'Connect Dropbox to copy each idea there as its own folder.'}<br><br>Tip: hold down a recording to rename, share or delete it. Tap a note or an idea name to edit it.</p>
+    ${connected ? '<button class="btn danger" id="mdisc">Disconnect Dropbox</button>' : ''}
     <button class="btn" id="mclose">Close</button>`, () => {
+    if ($('msync')) $('msync').onclick = () => { closeSheet(); sync(true); };
+    if ($('mconnect')) $('mconnect').onclick = dbxConnect;
+    if ($('mdisc')) $('mdisc').onclick = () => confirmSheet('Disconnect Dropbox?', 'New ideas will stay on this phone only. Folders already in Dropbox are left alone.', 'Disconnect', async () => { dbx = null; await del('meta', 'dbx'); render(); });
     $('mbk').onclick = backup;
     $('mrs').onclick = restore;
     $('msearch').onclick = () => { closeSheet(); const s = $('search'); s.classList.remove('hidden'); s.focus(); };
     $('mclose').onclick = closeSheet;
   });
 }
+
+/* ---------- Dropbox sync ---------- */
+// Each idea becomes a folder named after it, holding "Description.txt" and its recordings.
+const DBX_KEY = 'n6bqbqt22k7kujb';
+const DBX_ROOT = '/01 Music/Songwriting/Song Ideas';
+const REDIRECT = location.origin + location.pathname.replace(/index\.html$/, '');
+let dbx = null;        // { refresh, lastSync, broken }
+let dbxOps = [];       // pending deletes for ideas that no longer exist
+let access = null;     // { token, exp }
+let syncing = false, syncAgain = false, syncTimer = 0;
+
+const b64url = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+function randomString(n){ const a = new Uint8Array(n); crypto.getRandomValues(a); return b64url(a).slice(0, n); }
+
+async function dbxConnect(){
+  closeSheet();
+  if (!navigator.onLine) return toast('Connect Dropbox when you have signal');
+  const verifier = randomString(64);
+  const challenge = b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)));
+  const state = randomString(16);
+  await put('meta', { k: 'pkce', v: { verifier, state } });
+  const q = new URLSearchParams({ client_id: DBX_KEY, response_type: 'code', code_challenge: challenge, code_challenge_method: 'S256', token_access_type: 'offline', redirect_uri: REDIRECT, state });
+  location.href = 'https://www.dropbox.com/oauth2/authorize?' + q.toString();
+}
+async function finishConnect(){
+  const q = new URLSearchParams(location.search);
+  if (!q.has('code') && !q.has('error')) return;
+  history.replaceState(null, '', REDIRECT);
+  if (q.has('error')) return toast('Dropbox wasn’t connected');
+  const p = await get('meta', 'pkce');
+  if (!p || p.v.state !== q.get('state')) return toast('Couldn’t finish connecting. Try Connect Dropbox again.');
+  try {
+    const r = await fetch('https://api.dropboxapi.com/oauth2/token', {
+      method: 'POST',
+      body: new URLSearchParams({ code: q.get('code'), grant_type: 'authorization_code', client_id: DBX_KEY, code_verifier: p.v.verifier, redirect_uri: REDIRECT })
+    });
+    const j = await r.json();
+    if (!r.ok || !j.refresh_token) throw new Error(j.error_description || 'no token');
+    access = { token: j.access_token, exp: Date.now() + (j.expires_in || 14000) * 1000 };
+    dbx = { refresh: j.refresh_token, lastSync: null };
+    await put('meta', { k: 'dbx', v: dbx });
+    await del('meta', 'pkce');
+    toast('Dropbox connected');
+    render();
+    sync(true);
+  } catch (e) { toast('Couldn’t connect Dropbox. Try again.'); }
+}
+async function token(){
+  if (access && access.exp > Date.now() + 60000) return access.token;
+  const r = await fetch('https://api.dropboxapi.com/oauth2/token', {
+    method: 'POST', body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: dbx.refresh, client_id: DBX_KEY })
+  });
+  if (r.status === 400 || r.status === 401){
+    dbx.broken = true; await put('meta', { k: 'dbx', v: dbx });
+    throw Object.assign(new Error('signed out'), { fatal: true });
+  }
+  if (!r.ok) throw new Error('token ' + r.status);
+  const j = await r.json();
+  access = { token: j.access_token, exp: Date.now() + (j.expires_in || 14000) * 1000 };
+  return access.token;
+}
+async function apiError(r){
+  let summary = '';
+  try { const j = await r.json(); summary = j.error_summary || ''; } catch (e) {}
+  if (r.status === 401){ access = null; }
+  return Object.assign(new Error('dropbox ' + r.status + ' ' + summary), { status: r.status, summary });
+}
+async function rpc(endpoint, body){
+  const r = await fetch('https://api.dropboxapi.com/2/' + endpoint, {
+    method: 'POST', headers: { Authorization: 'Bearer ' + await token(), 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+  });
+  if (!r.ok) throw await apiError(r);
+  return r.json();
+}
+const asciiJSON = (o) => JSON.stringify(o).replace(/[\u007f-￿]/g, (c) => '\\u' + ('000' + c.charCodeAt(0).toString(16)).slice(-4));
+async function upload(path, blob){
+  const r = await fetch('https://content.dropboxapi.com/2/files/upload', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + await token(), 'Content-Type': 'application/octet-stream', 'Dropbox-API-Arg': asciiJSON({ path, mode: 'overwrite', mute: true, autorename: false }) },
+    body: blob
+  });
+  if (!r.ok) throw await apiError(r);
+  return r.json();
+}
+const notFound = (e) => /not_found/.test(e.summary || '');
+const conflict = (e) => /conflict/.test(e.summary || '');
+
+function cleanName(s){
+  return String(s || '').normalize('NFC').replace(/[\\/:*?"<>|\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().replace(/[. ]+$/, '').slice(0, 120);
+}
+const ymd = (t) => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+function folderNames(){
+  // Same title twice gets " (2)", " (3)"... in the order the ideas were started.
+  const used = new Map(), out = new Map();
+  for (const i of ideas.slice().sort((a, b) => a.at - b.at)){
+    const base = cleanName(i.title) || 'Untitled idea ' + ymd(i.at);
+    let name = base, n = 1;
+    while (used.has(name.toLowerCase())) name = `${base} (${++n})`;
+    used.set(name.toLowerCase(), 1); out.set(i.id, name);
+  }
+  return out;
+}
+function extFor(type){ type = type || ''; return type.includes('mp4') || type.includes('aac') ? '.m4a' : type.includes('ogg') ? '.ogg' : type.includes('webm') ? '.webm' : '.m4a'; }
+function takeNames(idea){
+  const used = new Set(), out = new Map();
+  for (const t of idea.takes){
+    const base = cleanName(t.name) || 'Take';
+    const ext = t.ext || '.m4a';
+    let name = base + ext, n = 1;
+    while (used.has(name.toLowerCase())) name = `${base} (${++n})${ext}`;
+    used.add(name.toLowerCase()); out.set(t.id, name);
+  }
+  return out;
+}
+function descText(idea){
+  const d = new Date(idea.at).toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' });
+  const lines = [idea.title || 'Untitled idea', 'Started ' + d, ''];
+  for (const n of idea.notes) lines.push('• ' + n.text.replace(/\n/g, '\n  '), '');
+  if (!idea.notes.length) lines.push('(No notes yet)', '');
+  return lines.join('\n');
+}
+function needsSync(idea, names){
+  const s = idea.sync;
+  if (!s || !s.folder || s.wanted !== names.get(idea.id) || s.desc !== descText(idea)) return true;
+  const tn = takeNames(idea);
+  if (idea.takes.some((t) => s.takes[t.id] !== tn.get(t.id))) return true;
+  return Object.keys(s.takes).some((id) => !idea.takes.find((t) => t.id === id));
+}
+function pendingCount(){
+  if (!dbx) return 0;
+  const names = folderNames();
+  return ideas.filter((i) => needsSync(i, names)).length + dbxOps.length;
+}
+async function queueOp(op){ dbxOps.push(op); await put('meta', { k: 'ops', v: dbxOps }); }
+function scheduleSync(){ clearTimeout(syncTimer); syncTimer = setTimeout(() => sync(), 1500); }
+
+async function syncIdea(idea, names){
+  const live = () => ideas.includes(idea);
+  const persist = async () => { if (live()) await put('ideas', idea); };
+  const want = names.get(idea.id);
+  const s = idea.sync = idea.sync || { folder: null, wanted: null, desc: null, takes: {} };
+  // 1. the folder
+  if (s.folder && s.wanted !== want){
+    try {
+      const r = await rpc('files/move_v2', { from_path: DBX_ROOT + '/' + s.folder, to_path: DBX_ROOT + '/' + want, autorename: true });
+      s.folder = r.metadata.name; s.wanted = want;
+    } catch (e) {
+      if (!notFound(e)) throw e;
+      s.folder = null; s.desc = null; s.takes = {};
+    }
+    await persist();
+  }
+  if (!s.folder){
+    try { await rpc('files/create_folder_v2', { path: DBX_ROOT + '/' + want, autorename: false }); }
+    catch (e) { if (!conflict(e)) throw e; } // already there: use it
+    s.folder = want; s.wanted = want;
+    if (!live()){ await rpc('files/delete_v2', { path: DBX_ROOT + '/' + want }).catch(() => {}); return; }
+    await persist();
+  }
+  const dir = DBX_ROOT + '/' + s.folder;
+  // 2. the notes
+  const text = descText(idea);
+  if (s.desc !== text){
+    await upload(dir + '/Description.txt', new Blob([text], { type: 'text/plain' }));
+    s.desc = text; await persist();
+  }
+  // 3. recordings: add new ones, rename changed ones, remove deleted ones
+  const tn = takeNames(idea);
+  for (const t of idea.takes.slice()){
+    const name = tn.get(t.id), cur = s.takes[t.id];
+    if (cur === name) continue;
+    if (cur){
+      try { await rpc('files/move_v2', { from_path: dir + '/' + cur, to_path: dir + '/' + name, autorename: false }); s.takes[t.id] = name; await persist(); continue; }
+      catch (e) { if (!notFound(e)) throw e; }
+    }
+    const a = await get('audio', t.id);
+    if (!a) continue;
+    await upload(dir + '/' + name, a.blob);
+    s.takes[t.id] = name; await persist();
+  }
+  for (const id of Object.keys(s.takes)){
+    if (idea.takes.find((t) => t.id === id)) continue;
+    try { await rpc('files/delete_v2', { path: dir + '/' + s.takes[id] }); } catch (e) { if (!notFound(e)) throw e; }
+    delete s.takes[id]; await persist();
+  }
+}
+async function sync(manual){
+  if (!dbx || !dbx.refresh || dbx.broken){ if (manual) toast('Connect Dropbox first'); return; }
+  if (!navigator.onLine){ if (manual) toast('No signal. It’ll save to Dropbox when you’re back online.'); render(); return; }
+  if (syncing){ syncAgain = true; return; }
+  syncing = true; $('count').textContent = countText();
+  let failed = null;
+  try {
+    while (dbxOps.length){
+      const op = dbxOps[0];
+      try { await rpc('files/delete_v2', { path: op.path }); } catch (e) { if (!notFound(e)) throw e; }
+      dbxOps.shift(); await put('meta', { k: 'ops', v: dbxOps });
+    }
+    const names = folderNames();
+    for (const idea of ideas.slice()){
+      if (!needsSync(idea, names)) continue;
+      try { await syncIdea(idea, names); }
+      catch (e) { if (e.fatal) throw e; failed = e; }
+    }
+    if (!failed){ dbx.lastSync = Date.now(); await put('meta', { k: 'dbx', v: dbx }); }
+  } catch (e) { failed = e; }
+  syncing = false;
+  if (failed && manual) toast(failed.fatal ? 'Dropbox needs you to sign in again' : 'Couldn’t reach Dropbox. It’ll try again.');
+  if (manual && !failed) toast('Saved to Dropbox');
+  render();
+  if (syncAgain){ syncAgain = false; scheduleSync(); }
+  else if (failed && !failed.fatal){ clearTimeout(syncTimer); syncTimer = setTimeout(() => sync(), 60000); }
+}
+window.addEventListener('online', () => sync());
+window.addEventListener('offline', () => render());
+document.addEventListener('visibilitychange', () => { if (!document.hidden) sync(); });
 
 /* ---------- events ---------- */
 $('newBtn').onclick = newIdea;
@@ -603,7 +844,7 @@ list.addEventListener('click', (e) => {
 if ('serviceWorker' in navigator && location.protocol === 'https:'){
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
-load().catch(() => { $('list').innerHTML = '<div class="empty">Couldn’t open your saved ideas. Close the app and open it again.</div>'; });
+load().then(finishConnect).then(() => sync()).catch(() => { $('list').innerHTML = '<div class="empty">Couldn’t open your saved ideas. Close the app and open it again.</div>'; });
 </script>
 </body>
 </html>
