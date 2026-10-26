@@ -76,6 +76,7 @@ h1{margin:0;font-size:30px;font-weight:700;letter-spacing:-.5px}
 .empty{padding:48px 24px;text-align:center;color:var(--muted);font-size:15px;line-height:1.5}
 /* sheets */
 .scrim{position:fixed;inset:0;background:var(--scrim);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet > *{flex-shrink:0}
 .sheet{width:100%;max-width:560px;background:var(--sheet);border-radius:22px 22px 0 0;padding:10px 20px calc(20px + env(safe-area-inset-bottom));
   display:flex;flex-direction:column;gap:14px;max-height:92vh;overflow:auto}
 .scrim.attop{align-items:flex-start}
@@ -556,7 +557,7 @@ async function backup(){
 function restore(){
   closeSheet();
   const inp = document.createElement('input');
-  inp.type = 'file'; inp.accept = '.json,application/json';
+  inp.type = 'file'; // no accept filter: iPhone greys out .json files when one is set
   inp.onchange = async () => {
     const f = inp.files && inp.files[0]; if (!f) return;
     let data;
