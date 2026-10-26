@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Song Ideas</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Song Ideas">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#F7F4EF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1C1917" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-180.png">
+<style>
+:root{
+  --bg:#F7F4EF; --card:#FFFFFF; --line:#E7E2DA; --text:#1C1917; --muted:#57534E;
+  --chip:#EFEAE3; --chip-text:#1C1917; --accent:#B45309; --accent-text:#FFFFFF;
+  --accent-soft:#FDF1E3; --rec:#DC2626; --sheet:#FFFFFF; --scrim:rgba(28,25,23,.45);
+  --field:#F7F4EF; --dash:#A8A29E;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#1C1917; --card:#292524; --line:#3A3532; --text:#F5F5F4; --muted:#B6AFA8;
+    --chip:#3A3532; --chip-text:#F5F5F4; --accent:#F59E0B; --accent-text:#1C1917;
+    --accent-soft:#3B2A12; --rec:#EF4444; --sheet:#292524; --scrim:rgba(0,0,0,.6);
+    --field:#1C1917; --dash:#78716C;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text)}
+body{font-family:-apple-system,"SF Pro Text","Helvetica Neue",Arial,sans-serif;-webkit-text-size-adjust:100%;
+  padding-bottom:env(safe-area-inset-bottom)}
+button{font-family:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.top{position:sticky;top:0;z-index:5;background:var(--bg);padding:calc(env(safe-area-inset-top) + 14px) 16px 8px}
+.toprow{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+h1{margin:0;font-size:30px;font-weight:700;letter-spacing:-.5px}
+.sub{font-size:13px;color:var(--muted);margin-top:2px}
+.actions{display:flex;gap:8px;align-items:center}
+.primary{height:44px;padding:0 16px;border:none;border-radius:22px;background:var(--accent);color:var(--accent-text);
+  font-size:15px;font-weight:600;display:flex;align-items:center;gap:6px;white-space:nowrap;flex-shrink:0}
+.iconbtn{width:44px;height:44px;border-radius:22px;border:none;background:var(--chip);display:flex;align-items:center;justify-content:center}
+.search{margin-top:10px;width:100%;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--card);
+  color:var(--text);font-size:16px;padding:0 12px;outline:none}
+.search::placeholder{color:var(--muted)}
+.banner{margin:8px 12px 0;padding:10px 12px;border-radius:12px;background:var(--accent-soft);font-size:13px;
+  display:flex;align-items:center;justify-content:space-between;gap:10px}
+.banner button{border:none;background:none;color:var(--accent);font-weight:700;font-size:13px;padding:8px 4px}
+.cols,.row{display:grid;grid-template-columns:88px minmax(0,1fr) 108px;gap:8px}
+.cols{padding:8px 22px 6px;font-size:11px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--muted)}
+.list{display:flex;flex-direction:column;gap:8px;padding:0 12px 24px}
+.row{padding:12px 10px;background:var(--card);border-radius:14px;border:1px solid var(--line);align-items:start}
+.row.fresh{border:2px solid var(--accent)}
+.title{border:none;background:none;padding:0;text-align:left;font-size:15px;font-weight:650;line-height:1.25;
+  word-break:break-word;min-height:44px;display:block;width:100%}
+.title.untitled{color:var(--muted);font-weight:500}
+.date{display:block;font-size:11px;color:var(--muted);margin-top:4px;font-weight:400}
+.notes{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0}
+.bubble{border:none;text-align:left;font-size:13px;line-height:1.35;background:var(--chip);color:var(--chip-text);
+  border-radius:14px 14px 14px 4px;padding:7px 10px;max-width:100%;white-space:pre-wrap;word-break:break-word}
+.add{height:40px;padding:0 12px;border:1.5px dashed var(--dash);border-radius:20px;background:transparent;
+  font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;color:var(--muted)}
+.takes{display:flex;flex-direction:column;gap:6px}
+.take{position:relative;overflow:hidden;height:44px;border:none;border-radius:22px;background:var(--chip);color:var(--chip-text);
+  font-size:12px;font-weight:600;display:flex;align-items:center;gap:7px;padding:0 10px;text-align:left;
+  -webkit-touch-callout:none;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.take .fill{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--accent);opacity:.22;pointer-events:none}
+.take span,.take svg{position:relative}
+.take .lbl{display:flex;flex-direction:column;min-width:0;line-height:1.2}
+.take .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.take .du{font-size:11px;font-weight:400;color:var(--muted);font-variant-numeric:tabular-nums}
+.take svg{flex-shrink:0}
+.rec{height:44px;border:1.5px dashed var(--accent);border-radius:22px;background:transparent;color:var(--accent);
+  font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px}
+.empty{padding:48px 24px;text-align:center;color:var(--muted);font-size:15px;line-height:1.5}
+/* sheets */
+.scrim{position:fixed;inset:0;background:var(--scrim);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet{width:100%;max-width:560px;background:var(--sheet);border-radius:22px 22px 0 0;padding:10px 20px calc(20px + env(safe-area-inset-bottom));
+  display:flex;flex-direction:column;gap:14px;max-height:92vh;overflow:auto}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--line);align-self:center}
+.sheet h2{margin:0;font-size:18px}
+.sheet .hint{font-size:13px;color:var(--muted);margin:0;line-height:1.4}
+.field{width:100%;border:1px solid var(--line);background:var(--field);color:var(--text);border-radius:12px;padding:12px;
+  font-size:17px;font-family:inherit;outline:none;resize:none}
+textarea.field{min-height:120px;line-height:1.4}
+.btnrow{display:flex;gap:10px}
+.btn{flex:1;height:48px;border-radius:14px;border:none;font-size:16px;font-weight:600;background:var(--chip)}
+.btn.go{background:var(--accent);color:var(--accent-text)}
+.btn.danger{background:transparent;color:var(--rec);border:1px solid var(--line)}
+.menuitem{height:52px;border:none;border-radius:14px;background:var(--chip);font-size:16px;font-weight:600;text-align:left;padding:0 16px;
+  display:flex;align-items:center;justify-content:space-between}
+.menuitem small{font-weight:400;color:var(--muted);font-size:13px}
+/* recorder */
+.recfor{text-align:center;font-size:13px;color:var(--muted)}
+.recfor b{display:block;font-size:18px;color:var(--text);margin-top:2px;word-break:break-word}
+.clock{display:flex;align-items:center;justify-content:center;gap:10px;font-size:44px;font-weight:300;font-variant-numeric:tabular-nums}
+.dot{width:12px;height:12px;border-radius:6px;background:var(--rec);animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.25}}
+.meter{height:64px;display:flex;align-items:center;justify-content:center;gap:3px}
+.meter i{display:block;width:4px;border-radius:2px;background:var(--accent);height:6px;transition:height .08s}
+.recbtns{display:flex;align-items:center;justify-content:center;gap:40px}
+.cancel{width:56px;height:56px;border-radius:28px;border:none;background:var(--chip);display:flex;align-items:center;justify-content:center}
+.stop{width:84px;height:84px;border-radius:42px;border:4px solid #FECACA;background:var(--rec);display:flex;align-items:center;justify-content:center}
+.stop span{width:28px;height:28px;border-radius:6px;background:#fff}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:40;
+  background:var(--text);color:var(--bg);padding:10px 16px;border-radius:20px;font-size:14px;max-width:90vw;text-align:center}
+.hidden{display:none !important}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="toprow">
+    <div>
+      <h1>Song Ideas</h1>
+      <div class="sub" id="count">Works with no signal</div>
+    </div>
+    <div class="actions">
+      <button class="iconbtn" id="menuBtn" aria-label="Menu">
+        <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="4" cy="10" r="2" fill="currentColor"/><circle cx="10" cy="10" r="2" fill="currentColor"/><circle cx="16" cy="10" r="2" fill="currentColor"/></svg>
+      </button>
+      <button class="primary" id="newBtn">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>
+        New idea
+      </button>
+    </div>
+  </div>
+  <input class="search hidden" id="search" type="search" placeholder="Search ideas and notes" aria-label="Search ideas and notes">
+</header>
+<div id="banner"></div>
+<div class="cols" id="cols"><span>Idea</span><span>Description</span><span>Recordings</span></div>
+<main class="list" id="list"></main>
+<div id="layer"></div>
+
+<script>
+'use strict';
+/* ---------- storage (IndexedDB) ---------- */
+const DB_NAME = 'song-ideas', DB_VER = 1;
+let dbp = null;
+function db(){
+  if (dbp) return dbp;
+  dbp = new Promise((res, rej) => {
+    const r = indexedDB.open(DB_NAME, DB_VER);
+    r.onupgradeneeded = () => {
+      const d = r.result;
+      if (!d.objectStoreNames.contains('ideas')) d.createObjectStore('ideas', { keyPath: 'id' });
+      if (!d.objectStoreNames.contains('audio')) d.createObjectStore('audio', { keyPath: 'id' });
+      if (!d.objectStoreNames.contains('meta')) d.createObjectStore('meta', { keyPath: 'k' });
+    };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+  return dbp;
+}
+async function tx(store, mode, fn){
+  const d = await db();
+  return new Promise((res, rej) => {
+    const t = d.transaction(store, mode);
+    const s = t.objectStore(store);
+    let out;
+    const r = fn(s);
+    if (r) r.onsuccess = () => { out = r.result; };
+    t.oncomplete = () => res(out);
+    t.onerror = () => rej(t.error);
+    t.onabort = () => rej(t.error);
+  });
+}
+const getAll = (s) => tx(s, 'readonly', (st) => st.getAll());
+const get = (s, k) => tx(s, 'readonly', (st) => st.get(k));
+const put = (s, v) => tx(s, 'readwrite', (st) => st.put(v));
+const del = (s, k) => tx(s, 'readwrite', (st) => st.delete(k));
+
+let persistAsked = false;
+async function askPersist(){
+  if (persistAsked) return; persistAsked = true;
+  try { if (navigator.storage && navigator.storage.persist) await navigator.storage.persist(); } catch (e) {}
+}
+
+/* ---------- state ---------- */
+let ideas = [];
+let query = '';
+let freshId = null;
+let lastBackup = null;
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+async function load(){
+  ideas = await getAll('ideas');
+  const m = await get('meta', 'lastBackup');
+  lastBackup = m ? m.v : null;
+  render();
+}
+async function saveIdea(idea){
+  idea.upd = Date.now();
+  await put('ideas', idea);
+  const i = ideas.findIndex((x) => x.id === idea.id);
+  if (i >= 0) ideas[i] = idea; else ideas.push(idea);
+  askPersist();
+}
+
+/* ---------- helpers ---------- */
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+const fmtDur = (s) => { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+const fmtDate = (t) => new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: new Date(t).getFullYear() === new Date().getFullYear() ? undefined : 'numeric' });
+const $ = (id) => document.getElementById(id);
+function toast(msg){
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2600);
+}
+const PLUS = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>';
+const PLAY = '<svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.5v9l7.5-4.5z" fill="currentColor"/></svg>';
+const PAUSE = '<svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="1.5" width="3" height="9" fill="currentColor"/><rect x="7" y="1.5" width="3" height="9" fill="currentColor"/></svg>';
+
+/* ---------- render ---------- */
+function matches(idea){
+  if (!query) return true;
+  const q = query.toLowerCase();
+  return (idea.title || '').toLowerCase().includes(q) || idea.notes.some((n) => n.text.toLowerCase().includes(q));
+}
+function render(){
+  const list = $('list');
+  const sorted = ideas.slice().sort((a, b) => b.at - a.at);
+  const shown = sorted.filter(matches);
+  $('count').textContent = ideas.length ? `${ideas.length} idea${ideas.length === 1 ? '' : 's'} · works with no signal` : 'Works with no signal';
+  $('search').classList.toggle('hidden', ideas.length < 6 && !query);
+  $('cols').classList.toggle('hidden', !shown.length);
+  renderBanner();
+  if (!ideas.length){
+    list.innerHTML = '<div class="empty">No ideas yet.<br>Tap <b>New idea</b> to add your first one.</div>';
+    return;
+  }
+  if (!shown.length){
+    list.innerHTML = `<div class="empty">Nothing matches “${esc(query)}”.</div>`;
+    return;
+  }
+  list.innerHTML = shown.map((idea) => `
+    <section class="row${idea.id === freshId ? ' fresh' : ''}" data-id="${idea.id}">
+      <div>
+        <button class="title${idea.title ? '' : ' untitled'}" data-act="title">${esc(idea.title || 'Untitled idea')}<span class="date">${fmtDate(idea.at)}</span></button>
+      </div>
+      <div class="notes">
+        ${idea.notes.map((n) => `<button class="bubble" data-act="note" data-note="${n.id}">${esc(n.text)}</button>`).join('')}
+        <button class="add" data-act="addnote">${PLUS} Note</button>
+      </div>
+      <div class="takes">
+        ${idea.takes.map((t) => `<button class="take" data-act="take" data-take="${t.id}" aria-label="Play ${esc(t.name)}"><span class="fill"></span>${playing && playing.id === t.id ? PAUSE : PLAY}<span class="lbl"><span class="nm">${esc(t.name)}</span><span class="du">${fmtDur(t.dur)}</span></span></button>`).join('')}
+        <button class="rec" data-act="record">${PLUS} Record</button>
+      </div>
+    </section>`).join('');
+}
+function renderBanner(){
+  const b = $('banner');
+  const week = 7 * 24 * 3600 * 1000;
+  const changedSince = ideas.some((i) => !lastBackup || i.upd > lastBackup);
+  if (ideas.length && changedSince && (!lastBackup || Date.now() - lastBackup > week)){
+    b.innerHTML = `<div class="banner"><span>${lastBackup ? 'Last backup was ' + Math.floor((Date.now() - lastBackup) / 864e5) + ' days ago.' : 'Your ideas live only on this phone.'} Back them up to Dropbox when you have signal.</span><button id="bannerBk">Back up</button></div>`;
+    $('bannerBk').onclick = backup;
+  } else b.innerHTML = '';
+}
+
+/* ---------- sheets ---------- */
+function openSheet(html, onMount){
+  const layer = $('layer');
+  layer.innerHTML = `<div class="scrim" id="scrim"><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div>${html}</div></div>`;
+  $('scrim').addEventListener('click', (e) => { if (e.target.id === 'scrim' && !recState) closeSheet(); });
+  if (onMount) onMount(layer.querySelector('.sheet'));
+}
+function closeSheet(){ $('layer').innerHTML = ''; }
+
+function textSheet({ title, hint, value = '', placeholder, multiline, saveLabel = 'Save', onSave, onDelete, deleteLabel = 'Delete' }){
+  openSheet(`
+    <h2>${esc(title)}</h2>
+    ${hint ? `<p class="hint">${esc(hint)}</p>` : ''}
+    ${multiline
+      ? `<textarea class="field" id="tf" placeholder="${esc(placeholder || '')}"></textarea>`
+      : `<input class="field" id="tf" type="text" placeholder="${esc(placeholder || '')}" enterkeyhint="done" autocomplete="off">`}
+    <div class="btnrow">
+      <button class="btn" id="tcancel">Cancel</button>
+      <button class="btn go" id="tsave">${esc(saveLabel)}</button>
+    </div>
+    ${onDelete ? `<button class="btn danger" id="tdel">${esc(deleteLabel)}</button>` : ''}
+  `, () => {
+    const f = $('tf');
+    f.value = value;
+    f.focus();
+    try { f.setSelectionRange(f.value.length, f.value.length); } catch (e) {}
+    const save = () => { const v = f.value.trim(); closeSheet(); onSave(v); };
+    $('tsave').onclick = save;
+    $('tcancel').onclick = closeSheet;
+    if (!multiline) f.addEventListener('keydown', (e) => { if (e.key === 'Enter'){ e.preventDefault(); save(); } });
+    if (onDelete) $('tdel').onclick = () => { closeSheet(); onDelete(); };
+  });
+}
+function confirmSheet(title, hint, label, onYes){
+  openSheet(`<h2>${esc(title)}</h2><p class="hint">${esc(hint)}</p>
+    <div class="btnrow"><button class="btn" id="cno">Cancel</button><button class="btn danger" id="cyes" style="flex:1">${esc(label)}</button></div>`, () => {
+    $('cno').onclick = closeSheet;
+    $('cyes').onclick = () => { closeSheet(); onYes(); };
+  });
+}
+
+/* ---------- actions ---------- */
+function newIdea(){
+  textSheet({
+    title: 'New idea', placeholder: 'Name it (you can change it later)', saveLabel: 'Add',
+    onSave: async (v) => {
+      const idea = { id: uid(), title: v, notes: [], takes: [], at: Date.now(), upd: Date.now() };
+      freshId = idea.id;
+      query = ''; $('search').value = '';
+      await saveIdea(idea);
+      render();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  });
+}
+function editTitle(idea){
+  textSheet({
+    title: 'Idea name', value: idea.title, placeholder: 'Name this idea',
+    onSave: async (v) => { idea.title = v; await saveIdea(idea); render(); },
+    deleteLabel: 'Delete this whole idea',
+    onDelete: () => confirmSheet('Delete this idea?', `“${idea.title || 'Untitled idea'}” and its ${idea.notes.length} note${idea.notes.length === 1 ? '' : 's'} and ${idea.takes.length} recording${idea.takes.length === 1 ? '' : 's'} will be gone for good.`, 'Delete', async () => {
+      stopPlayback();
+      for (const t of idea.takes) await del('audio', t.id);
+      await del('ideas', idea.id);
+      ideas = ideas.filter((x) => x.id !== idea.id);
+      render(); toast('Idea deleted');
+    })
+  });
+}
+function addNote(idea){
+  textSheet({
+    title: 'Add a note', hint: 'Type it, or tap the mic on your keyboard to speak.', multiline: true, saveLabel: 'Add',
+    placeholder: idea.title ? `About “${idea.title}”…` : 'What’s the idea?',
+    onSave: async (v) => { if (!v) return; idea.notes.push({ id: uid(), text: v, at: Date.now() }); freshId = idea.id; await saveIdea(idea); render(); }
+  });
+}
+function editNote(idea, noteId){
+  const n = idea.notes.find((x) => x.id === noteId); if (!n) return;
+  textSheet({
+    title: 'Edit note', value: n.text, multiline: true,
+    onSave: async (v) => {
+      if (!v) idea.notes = idea.notes.filter((x) => x.id !== noteId); else n.text = v;
+      await saveIdea(idea); render();
+    },
+    deleteLabel: 'Delete note',
+    onDelete: async () => { idea.notes = idea.notes.filter((x) => x.id !== noteId); await saveIdea(idea); render(); toast('Note deleted'); }
+  });
+}
+function takeMenu(idea, takeId){
+  const t = idea.takes.find((x) => x.id === takeId); if (!t) return;
+  openSheet(`<h2>${esc(t.name)}</h2><p class="hint">${fmtDur(t.dur)} · recorded ${new Date(t.at).toLocaleString()}</p>
+    <button class="menuitem" id="mren">Rename</button>
+    <button class="menuitem" id="mshare">Share or save the audio</button>
+    <button class="btn danger" id="mdel">Delete recording</button>
+    <button class="btn" id="mclose">Close</button>`, () => {
+    $('mclose').onclick = closeSheet;
+    $('mren').onclick = () => textSheet({ title: 'Rename recording', value: t.name, onSave: async (v) => { if (v){ t.name = v; await saveIdea(idea); render(); } } });
+    $('mshare').onclick = async () => { closeSheet(); await shareTake(idea, t); };
+    $('mdel').onclick = () => confirmSheet('Delete this recording?', `“${t.name}” will be gone for good.`, 'Delete', async () => {
+      if (playing && playing.id === t.id) stopPlayback();
+      idea.takes = idea.takes.filter((x) => x.id !== t.id);
+      await del('audio', t.id); await saveIdea(idea); render(); toast('Recording deleted');
+    });
+  });
+}
+async function shareTake(idea, t){
+  const a = await get('audio', t.id); if (!a) return toast('Recording not found');
+  const ext = (a.type || '').includes('mp4') ? 'm4a' : (a.type || '').includes('ogg') ? 'ogg' : 'webm';
+  const name = `${(idea.title || 'Song idea').replace(/[\\/:*?"<>|]/g, '')} - ${t.name}.${ext}`;
+  const file = new File([a.blob], name, { type: a.type });
+  if (navigator.canShare && navigator.canShare({ files: [file] })){
+    try { await navigator.share({ files: [file] }); } catch (e) {}
+  } else downloadBlob(a.blob, name);
+}
+function downloadBlob(blob, name){
+  const u = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(u), 4000);
+}
+
+/* ---------- playback ---------- */
+let playing = null; // { id, audio, url }
+function stopPlayback(){
+  if (!playing) return;
+  try { playing.audio.pause(); } catch (e) {}
+  URL.revokeObjectURL(playing.url);
+  playing = null;
+  render();
+}
+async function togglePlay(takeId){
+  if (playing && playing.id === takeId){
+    if (playing.audio.paused) playing.audio.play(); else playing.audio.pause();
+    updateTakeIcon(); return;
+  }
+  stopPlayback();
+  const a = await get('audio', takeId); if (!a) return toast('Recording not found');
+  const url = URL.createObjectURL(a.blob);
+  const audio = new Audio(url);
+  playing = { id: takeId, audio, url };
+  audio.addEventListener('timeupdate', () => {
+    const el = document.querySelector(`.take[data-take="${takeId}"] .fill`);
+    const total = isFinite(audio.duration) && audio.duration > 0 ? audio.duration : (findTake(takeId) || {}).dur || 1;
+    if (el) el.style.width = Math.min(100, audio.currentTime / total * 100) + '%';
+  });
+  audio.addEventListener('ended', stopPlayback);
+  audio.addEventListener('pause', updateTakeIcon);
+  audio.addEventListener('play', updateTakeIcon);
+  render();
+  try { await audio.play(); } catch (e) { toast('Could not play this recording'); stopPlayback(); }
+}
+function findTake(id){ for (const i of ideas){ const t = i.takes.find((x) => x.id === id); if (t) return t; } return null; }
+function updateTakeIcon(){
+  if (!playing) return;
+  const el = document.querySelector(`.take[data-take="${playing.id}"] svg`);
+  if (el) el.outerHTML = playing.audio.paused ? PLAY : PAUSE;
+}
+
+/* ---------- recording ---------- */
+let recState = null;
+function pickMime(){
+  if (!window.MediaRecorder) return null;
+  for (const m of ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg']) if (MediaRecorder.isTypeSupported(m)) return m;
+  return '';
+}
+async function startRecording(idea){
+  stopPlayback();
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || pickMime() === null){
+    return toast('Recording isn’t supported here. Open the app from your home screen in Safari.');
+  }
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }); }
+  catch (e) { return toast('Microphone is blocked. Allow it in Settings › Safari › Microphone.'); }
+  const mime = pickMime();
+  const rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+  const chunks = [];
+  const n = idea.takes.length + 1;
+  recState = { idea, stream, rec, chunks, start: Date.now(), keep: true, raf: 0, ctx: null };
+  rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+  rec.onstop = () => finishRecording();
+  rec.start(1000);
+  openSheet(`
+    <div class="recfor">Recording for<b>${esc(idea.title || 'Untitled idea')}</b></div>
+    <div class="clock"><span class="dot"></span><span id="clock">0:00</span></div>
+    <div class="meter" id="meter" role="img" aria-label="Sound level">${'<i></i>'.repeat(36)}</div>
+    <div class="recbtns">
+      <button class="cancel" id="rcancel" aria-label="Cancel recording"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
+      <button class="stop" id="rstop" aria-label="Stop and save"><span></span></button>
+      <span style="width:56px;height:56px"></span>
+    </div>
+    <p class="hint" style="text-align:center">Tap stop to save it as Take ${n}</p>`, () => {
+    $('rstop').onclick = () => { recState.keep = true; rec.state !== 'inactive' && rec.stop(); };
+    $('rcancel').onclick = () => { recState.keep = false; rec.state !== 'inactive' && rec.stop(); };
+  });
+  // level meter
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    const ctx = new Ctx(); recState.ctx = ctx;
+    const src = ctx.createMediaStreamSource(stream);
+    const an = ctx.createAnalyser(); an.fftSize = 256; src.connect(an);
+    const buf = new Uint8Array(an.fftSize);
+    const bars = Array.from(document.querySelectorAll('#meter i'));
+    const levels = new Array(bars.length).fill(0);
+    let last = 0;
+    const tick = (ts) => {
+      if (!recState) return;
+      const c = $('clock'); if (c) c.textContent = fmtDur((Date.now() - recState.start) / 1000);
+      if (ts - last > 70){
+        last = ts;
+        an.getByteTimeDomainData(buf);
+        let peak = 0; for (const v of buf) peak = Math.max(peak, Math.abs(v - 128));
+        levels.shift(); levels.push(Math.min(1, peak / 64));
+        bars.forEach((b, i) => { b.style.height = (6 + levels[i] * 54) + 'px'; });
+      }
+      recState.raf = requestAnimationFrame(tick);
+    };
+    recState.raf = requestAnimationFrame(tick);
+  } catch (e) {
+    const iv = setInterval(() => { if (!recState) return clearInterval(iv); const c = $('clock'); if (c) c.textContent = fmtDur((Date.now() - recState.start) / 1000); }, 250);
+  }
+}
+async function finishRecording(){
+  const s = recState; if (!s) return;
+  recState = null;
+  cancelAnimationFrame(s.raf);
+  s.stream.getTracks().forEach((t) => t.stop());
+  try { s.ctx && s.ctx.close(); } catch (e) {}
+  closeSheet();
+  const dur = (Date.now() - s.start) / 1000;
+  if (!s.keep || !s.chunks.length || dur < 0.5){ if (s.keep) toast('Nothing was recorded'); return; }
+  const type = s.rec.mimeType || (s.chunks[0] && s.chunks[0].type) || 'audio/mp4';
+  const blob = new Blob(s.chunks, { type });
+  const id = uid();
+  await put('audio', { id, blob, type });
+  const idea = ideas.find((x) => x.id === s.idea.id) || s.idea;
+  const nums = idea.takes.map((t) => (/^Take (\d+)$/.exec(t.name) || [])[1]).filter(Boolean).map(Number);
+  const next = nums.length ? Math.max(...nums) + 1 : idea.takes.length + 1;
+  idea.takes.push({ id, name: 'Take ' + next, dur, at: Date.now() });
+  freshId = idea.id;
+  await saveIdea(idea);
+  render();
+  toast('Saved Take ' + next);
+}
+// if the phone locks or the app is left mid-recording, keep what was captured
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && recState && recState.rec.state !== 'inactive'){ recState.keep = true; recState.rec.stop(); }
+});
+
+/* ---------- backup / restore ---------- */
+function blobToB64(blob){
+  return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] || ''); r.onerror = rej; r.readAsDataURL(blob); });
+}
+function b64ToBlob(b64, type){
+  const bin = atob(b64); const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type });
+}
+async function backup(){
+  closeSheet();
+  if (!ideas.length) return toast('Nothing to back up yet');
+  toast('Preparing backup…');
+  const audio = await getAll('audio');
+  const data = { app: 'song-ideas', version: 1, exported: new Date().toISOString(), ideas, audio: [] };
+  for (const a of audio) data.audio.push({ id: a.id, type: a.type, data: await blobToB64(a.blob) });
+  const d = new Date();
+  const name = `Song Ideas backup ${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}.json`;
+  const file = new File([JSON.stringify(data)], name, { type: 'application/json' });
+  let done = false;
+  if (navigator.canShare && navigator.canShare({ files: [file] })){
+    try { await navigator.share({ files: [file], title: name }); done = true; }
+    catch (e) { if (e && e.name === 'AbortError') return; }
+  }
+  if (!done){ downloadBlob(file, name); done = true; }
+  lastBackup = Date.now();
+  await put('meta', { k: 'lastBackup', v: lastBackup });
+  render();
+}
+function restore(){
+  closeSheet();
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = '.json,application/json';
+  inp.onchange = async () => {
+    const f = inp.files && inp.files[0]; if (!f) return;
+    let data;
+    try { data = JSON.parse(await f.text()); } catch (e) { return toast('That file isn’t a Song Ideas backup'); }
+    if (!data || data.app !== 'song-ideas' || !Array.isArray(data.ideas)) return toast('That file isn’t a Song Ideas backup');
+    confirmSheet('Restore this backup?', `It has ${data.ideas.length} idea${data.ideas.length === 1 ? '' : 's'}. Ideas already on this phone stay; matching ones are replaced with the backup’s version.`, 'Restore', async () => {
+      for (const a of (data.audio || [])) await put('audio', { id: a.id, type: a.type, blob: b64ToBlob(a.data, a.type) });
+      for (const i of data.ideas) await put('ideas', i);
+      await load();
+      toast('Backup restored');
+    });
+  };
+  inp.click();
+}
+function menu(){
+  const since = lastBackup ? 'Last: ' + new Date(lastBackup).toLocaleDateString() : 'Never';
+  openSheet(`<h2>Song Ideas</h2>
+    <button class="menuitem" id="mbk">Back up to Dropbox or Files <small>${esc(since)}</small></button>
+    <button class="menuitem" id="mrs">Restore from a backup</button>
+    <button class="menuitem" id="msearch">Search ideas</button>
+    <p class="hint">Everything is saved on this phone, so it works underground with no signal. Back up now and then: tap <b>Back up</b>, then choose <b>Save to Files › Dropbox</b>.<br><br>Tip: hold down a recording to rename, share or delete it. Tap a note or an idea name to edit it.</p>
+    <button class="btn" id="mclose">Close</button>`, () => {
+    $('mbk').onclick = backup;
+    $('mrs').onclick = restore;
+    $('msearch').onclick = () => { closeSheet(); const s = $('search'); s.classList.remove('hidden'); s.focus(); };
+    $('mclose').onclick = closeSheet;
+  });
+}
+
+/* ---------- events ---------- */
+$('newBtn').onclick = newIdea;
+$('menuBtn').onclick = menu;
+$('search').addEventListener('input', (e) => { query = e.target.value.trim(); render(); });
+
+let pressTimer = null, pressed = false, pressTarget = null;
+const list = $('list');
+list.addEventListener('pointerdown', (e) => {
+  const t = e.target.closest('.take'); if (!t) return;
+  pressed = false; pressTarget = t;
+  pressTimer = setTimeout(() => {
+    pressed = true;
+    const idea = ideas.find((x) => x.id === t.closest('.row').dataset.id);
+    if (idea) takeMenu(idea, t.dataset.take);
+  }, 500);
+});
+['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) => list.addEventListener(ev, () => clearTimeout(pressTimer)));
+list.addEventListener('contextmenu', (e) => { if (e.target.closest('.take')) e.preventDefault(); });
+list.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const idea = ideas.find((x) => x.id === b.closest('.row').dataset.id); if (!idea) return;
+  const act = b.dataset.act;
+  if (act === 'take'){ if (pressed){ pressed = false; return; } return togglePlay(b.dataset.take); }
+  if (act === 'title') return editTitle(idea);
+  if (act === 'addnote') return addNote(idea);
+  if (act === 'note') return editNote(idea, b.dataset.note);
+  if (act === 'record') return startRecording(idea);
+});
+
+if ('serviceWorker' in navigator && location.protocol === 'https:'){
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+load().catch(() => { $('list').innerHTML = '<div class="empty">Couldn’t open your saved ideas. Close the app and open it again.</div>'; });
+</script>
+</body>
+</html>
