@@ -78,6 +78,9 @@ h1{margin:0;font-size:30px;font-weight:700;letter-spacing:-.5px}
 .scrim{position:fixed;inset:0;background:var(--scrim);z-index:20;display:flex;align-items:flex-end;justify-content:center}
 .sheet{width:100%;max-width:560px;background:var(--sheet);border-radius:22px 22px 0 0;padding:10px 20px calc(20px + env(safe-area-inset-bottom));
   display:flex;flex-direction:column;gap:14px;max-height:92vh;overflow:auto}
+.scrim.attop{align-items:flex-start}
+.scrim.attop .sheet{border-radius:0 0 22px 22px;padding:calc(14px + env(safe-area-inset-top)) 20px 18px}
+.scrim.attop .grab{display:none}
 .grab{width:40px;height:5px;border-radius:3px;background:var(--line);align-self:center}
 .sheet h2{margin:0;font-size:18px}
 .sheet .hint{font-size:13px;color:var(--muted);margin:0;line-height:1.4}
@@ -260,9 +263,9 @@ function renderBanner(){
 }
 
 /* ---------- sheets ---------- */
-function openSheet(html, onMount){
+function openSheet(html, onMount, atTop){
   const layer = $('layer');
-  layer.innerHTML = `<div class="scrim" id="scrim"><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div>${html}</div></div>`;
+  layer.innerHTML = `<div class="scrim${atTop ? ' attop' : ''}" id="scrim"><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div>${html}</div></div>`;
   $('scrim').addEventListener('click', (e) => { if (e.target.id === 'scrim' && !recState) closeSheet(); });
   if (onMount) onMount(layer.querySelector('.sheet'));
 }
@@ -290,7 +293,7 @@ function textSheet({ title, hint, value = '', placeholder, multiline, saveLabel 
     $('tcancel').onclick = closeSheet;
     if (!multiline) f.addEventListener('keydown', (e) => { if (e.key === 'Enter'){ e.preventDefault(); save(); } });
     if (onDelete) $('tdel').onclick = () => { closeSheet(); onDelete(); };
-  });
+  }, true);
 }
 function confirmSheet(title, hint, label, onYes){
   openSheet(`<h2>${esc(title)}</h2><p class="hint">${esc(hint)}</p>
