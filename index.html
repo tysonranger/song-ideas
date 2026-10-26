@@ -245,7 +245,7 @@ function render(){
   list.innerHTML = shown.map((idea) => `
     <section class="row${idea.id === freshId ? ' fresh' : ''}" data-id="${idea.id}">
       <div>
-        <button class="title${idea.title ? '' : ' untitled'}" data-act="title">${esc(idea.title || 'Untitled idea')}<span class="date">${fmtDate(idea.at)}</span></button>
+        <button class="title${idea.title ? '' : ' untitled'}" data-act="title">${esc(idea.title || 'Untitled idea')}${idea.noDate ? '' : `<span class="date">${fmtDate(idea.at)}</span>`}</button>
       </div>
       <div class="notes">
         ${idea.notes.map((n) => `<button class="bubble" data-act="note" data-note="${n.id}">${esc(n.text)}</button>`).join('')}
@@ -711,7 +711,7 @@ function takeNames(idea){
 }
 function descText(idea){
   const d = new Date(idea.at).toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' });
-  const lines = [idea.title || 'Untitled idea', 'Started ' + d, ''];
+  const lines = [idea.title || 'Untitled idea', idea.noDate ? 'From the Apple Notes "Song ideas" list' : 'Started ' + d, ''];
   for (const n of idea.notes) lines.push('• ' + n.text.replace(/\n/g, '\n  '), '');
   if (!idea.notes.length) lines.push('(No notes yet)', '');
   return lines.join('\n');
