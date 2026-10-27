@@ -1,5 +1,5 @@
 // Song Ideas offline cache. Bump VERSION when the app files change.
-const VERSION = 'song-ideas-v8';
+const VERSION = 'song-ideas-v9';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-512.png'];
 
 self.addEventListener('install', (e) => {
@@ -23,7 +23,8 @@ self.addEventListener('fetch', (e) => {
   if (req.mode === 'navigate'){
     e.respondWith(caches.open(VERSION).then(async (c) => {
       const timeout = new Promise((r) => setTimeout(() => r(null), 3000));
-      const net = fetch(req, { cache: 'no-store' }).then((res) => { if (res && res.ok){ c.put('./index.html', res.clone()); return res; } return null; }).catch(() => null);
+      // Fetch by URL: iPhone refuses to copy a page-navigation request with new options.
+      const net = fetch(new URL('./index.html', self.registration.scope).href, { cache: 'no-store' }).then((res) => { if (res && res.ok){ c.put('./index.html', res.clone()); return res; } return null; }).catch(() => null);
       const res = await Promise.race([net, timeout]);
       return res || (await c.match('./index.html')) || (await net) || new Response('Offline', { status: 503 });
     }));

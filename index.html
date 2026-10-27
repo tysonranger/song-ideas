@@ -866,6 +866,19 @@ list.addEventListener('click', (e) => {
 
 if ('serviceWorker' in navigator && location.protocol === 'https:'){
   navigator.serviceWorker.register('sw.js').catch(() => {});
+  // When a new version has been downloaded and takes over, switch to it straight away
+  // (but never while a note, name or recording is open, so nothing typed is lost).
+  let reloading = false;
+  const applyUpdate = () => {
+    if (reloading) return;
+    if (recState || $('layer').innerHTML){ setTimeout(applyUpdate, 2000); return; }
+    reloading = true; location.reload();
+  };
+  if (navigator.serviceWorker.controller) navigator.serviceWorker.addEventListener('controllerchange', applyUpdate);
+  // iPhone often just resumes the app instead of reopening it, so check for updates on every return.
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && navigator.onLine) navigator.serviceWorker.getRegistration().then((r) => r && r.update()).catch(() => {});
+  });
 }
 load().then(finishConnect).then(() => sync()).catch(() => { $('list').innerHTML = '<div class="empty">Couldn’t open your saved ideas. Close the app and open it again.</div>'; });
 </script>
