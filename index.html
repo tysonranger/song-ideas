@@ -19,6 +19,8 @@
   --chip:#EFEAE3; --chip-text:#1C1917; --accent:#B45309; --accent-text:#FFFFFF;
   --accent-soft:#FDF1E3; --rec:#DC2626; --sheet:#FFFFFF; --scrim:rgba(28,25,23,.45);
   --field:#F7F4EF; --dash:#A8A29E;
+  --note:#2563EB; --note-bg:#E3EDFF; --note-text:#172F6B;
+  --take:#C2410C; --take-bg:#FDE8D2; --take-text:#6B2309;
 }
 @media (prefers-color-scheme: dark){
   :root{
@@ -26,6 +28,8 @@
     --chip:#3A3532; --chip-text:#F5F5F4; --accent:#F59E0B; --accent-text:#1C1917;
     --accent-soft:#3B2A12; --rec:#EF4444; --sheet:#292524; --scrim:rgba(0,0,0,.6);
     --field:#1C1917; --dash:#78716C;
+    --note:#60A5FA; --note-bg:#1C3354; --note-text:#E2EDFF;
+    --take:#FB923C; --take-bg:#4A2A12; --take-text:#FFE6CF;
   }
 }
 *{box-sizing:border-box}
@@ -56,9 +60,15 @@ h1{margin:0;font-size:30px;font-weight:700;letter-spacing:-.5px}
 .title{border:none;background:none;padding:0;text-align:left;font-size:18px;font-weight:700;line-height:1.22;letter-spacing:-.2px;
   word-break:break-word;min-height:0;display:block;width:100%}
 .title.untitled{color:var(--muted);font-weight:500}
-.date{display:block;font-size:12px;color:var(--muted);margin-top:3px;font-weight:400;letter-spacing:0}
+.meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px;font-size:12px;font-weight:600;letter-spacing:0}
+.meta:empty{display:none}
+.date{color:var(--muted);font-weight:400}
+.badge{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:11px}
+.badge.bn{background:var(--note-bg);color:var(--note)}
+.badge.bt{background:var(--take-bg);color:var(--take)}
 .notes{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0}
-.bubble{border:none;text-align:left;font-size:14px;line-height:1.38;background:var(--chip);color:var(--chip-text);
+.notes:empty,.takes:empty{display:none}
+.bubble{border:none;text-align:left;font-size:14px;line-height:1.38;background:var(--note-bg);color:var(--note-text);
   border-radius:14px 14px 14px 4px;padding:8px 11px;max-width:100%;white-space:pre-wrap;word-break:break-word}
 /* typing right in the list */
 .ed{display:block;width:100%;border:1.5px solid var(--accent);background:var(--field);color:var(--text);font:inherit;
@@ -78,21 +88,22 @@ h1{margin:0;font-size:30px;font-weight:700;letter-spacing:-.5px}
 .undo{position:fixed;left:12px;right:12px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:40;display:flex;align-items:center;
   justify-content:space-between;gap:12px;background:var(--text);color:var(--bg);border-radius:14px;padding:6px 6px 6px 16px;font-size:15px;max-width:520px;margin:0 auto}
 .undo button{border:none;background:transparent;color:var(--accent);font-weight:700;font-size:15px;padding:10px 14px;min-height:44px}
-.add{height:40px;padding:0 12px;border:1.5px dashed var(--dash);border-radius:20px;background:transparent;
-  font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;color:var(--muted)}
-.takes{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px;padding-top:10px;border-top:1px solid var(--line)}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.add,.rec{height:38px;padding:0 14px;border-radius:19px;background:transparent;font-size:14px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;gap:6px}
+.add{border:1.5px solid var(--note);color:var(--note)}
+.takes{display:flex;flex-wrap:wrap;gap:6px}
 .takes .takesw{width:auto}
-.take{position:relative;overflow:hidden;height:40px;border:none;border-radius:20px;background:var(--chip);color:var(--chip-text);
+.take{position:relative;overflow:hidden;height:40px;border:none;border-radius:20px;background:var(--take-bg);color:var(--take-text);
   font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;padding:0 11px 0 10px;text-align:left;
   -webkit-touch-callout:none;user-select:none;-webkit-user-select:none;touch-action:manipulation}
-.take .fill{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--accent);opacity:.22;pointer-events:none}
+.take .fill{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--take);opacity:.35;pointer-events:none}
 .take span,.take svg{position:relative}
 .take .lbl{display:flex;align-items:baseline;gap:5px;min-width:0;line-height:1.2}
 .take .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.take .du{font-size:12px;font-weight:400;color:var(--muted);font-variant-numeric:tabular-nums}
-.take svg{flex-shrink:0}
-.rec{height:40px;padding:0 12px;border:1.5px dashed var(--accent);border-radius:20px;background:transparent;color:var(--accent);
-  font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px}
+.take .du{font-size:12px;font-weight:400;color:var(--take-text);opacity:.75;font-variant-numeric:tabular-nums}
+.take svg{flex-shrink:0;color:var(--take)}
+.rec{border:1.5px solid var(--take);color:var(--take)}
 .empty{padding:48px 24px;text-align:center;color:var(--muted);font-size:15px;line-height:1.5}
 /* sheets */
 .scrim{position:fixed;inset:0;background:var(--scrim);z-index:20;display:flex;align-items:flex-end;justify-content:center}
@@ -288,20 +299,24 @@ function matches(idea){
 }
 const TRASH = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>';
 const noteHTML = (n) => `<div class="sw notesw" data-swipe="note" data-note="${n.id}"><button class="sw-del" data-del aria-label="Delete note">${TRASH}</button><button class="bubble sw-body" data-act="note" data-note="${n.id}">${esc(n.text)}</button></div>`;
-const titleHTML = (idea) => `<button class="title${idea.title ? '' : ' untitled'}" data-act="title">${esc(idea.title || 'Untitled idea')}${idea.noDate ? '' : `<span class="date">${fmtDate(idea.at)}</span>`}</button>`;
+const NOTE_IC = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 7h14M5 12h14M5 17h9"/></svg>';
+const MIC_IC = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
+const metaHTML = (idea) => (idea.noDate ? '' : `<span class="date">${fmtDate(idea.at)}</span>`)
+  + (idea.notes.length ? `<span class="badge bn">${NOTE_IC}${idea.notes.length}</span>` : '')
+  + (idea.takes.length ? `<span class="badge bt">${MIC_IC}${idea.takes.length}</span>` : '');
+const titleHTML = (idea) => `<button class="title${idea.title ? '' : ' untitled'}" data-act="title">${esc(idea.title || 'Untitled idea')}<span class="meta">${metaHTML(idea)}</span></button>`;
+function refreshMeta(idea){
+  const m = document.querySelector(`.row[data-id="${idea.id}"] .tcell .meta`);
+  if (m) m.innerHTML = metaHTML(idea);
+}
 function rowHTML(idea){
   return `
     <div class="sw rowsw" data-swipe="idea" data-id="${idea.id}"><button class="sw-del" data-del>Delete</button>
     <section class="row sw-body${idea.id === freshId ? ' fresh' : ''}" data-id="${idea.id}">
       <div class="tcell">${titleHTML(idea)}</div>
-      <div class="notes">
-        ${idea.notes.map(noteHTML).join('')}
-        <button class="add" data-act="addnote">${PLUS} Note</button>
-      </div>
-      <div class="takes">
-        ${idea.takes.map((t) => `<div class="sw takesw" data-swipe="take" data-take="${t.id}"><button class="sw-del" data-del aria-label="Delete recording">${TRASH}</button><button class="take sw-body" data-act="take" data-take="${t.id}" aria-label="Play ${esc(t.name)}"><span class="fill"></span>${playing && playing.id === t.id ? PAUSE : PLAY}<span class="lbl"><span class="nm">${esc(t.name)}</span><span class="du">${fmtDur(t.dur)}</span></span></button></div>`).join('')}
-        <button class="rec" data-act="record">${PLUS} Record</button>
-      </div>
+      <div class="notes">${idea.notes.map(noteHTML).join('')}</div>
+      <div class="takes">${idea.takes.map((t) => `<div class="sw takesw" data-swipe="take" data-take="${t.id}"><button class="sw-del" data-del aria-label="Delete recording">${TRASH}</button><button class="take sw-body" data-act="take" data-take="${t.id}" aria-label="Play ${esc(t.name)}"><span class="fill"></span>${playing && playing.id === t.id ? PAUSE : PLAY}<span class="lbl"><span class="nm">${esc(t.name)}</span><span class="du">${fmtDur(t.dur)}</span></span></button></div>`).join('')}</div>
+      <div class="acts"><button class="add" data-act="addnote">${PLUS} Note</button><button class="rec" data-act="record">${PLUS} Record</button></div>
     </section></div>`;
 }
 function render(){
@@ -427,9 +442,8 @@ function beginEdit(kind, idea, noteId){
     ta.value = n.text; ta.placeholder = 'Type a note';
     row.querySelector(`.sw[data-note="${noteId}"]`).replaceWith(ta);
   } else {
-    const add = row.querySelector('[data-act=addnote]');
     ta.placeholder = 'Type a note';
-    add.before(ta); add.classList.add('hidden');
+    row.querySelector('.notes').appendChild(ta);
   }
   const ed = editing = { kind, idea, noteId, ta, row, done: false };
   ta.addEventListener('input', () => grow(ta));
@@ -476,12 +490,13 @@ function finishEdit(ed, opts = {}){
       ta.before(elFrom(noteHTML(n)));
       if (opts.next){
         window.scrollBy(0, ta.getBoundingClientRect().top - y0); // keep the same box open for the next bullet, so the keyboard stays up
-        ta.value = ''; grow(ta); ed.done = false; editing = ed; return;
+        ta.value = ''; grow(ta); ed.done = false; editing = ed; refreshMeta(idea); return;
       }
     }
     const add = row.querySelector('[data-act=addnote]');
     ta.remove(); if (add) add.classList.remove('hidden');
   }
+  if (kind !== 'title') refreshMeta(idea);
   $('count').textContent = countText();
   if (!editing) document.body.classList.remove('typing');
   if (then) then(); else afterEdit();
@@ -587,14 +602,14 @@ function deleteIdea(idea){
 function deleteNote(idea, noteId){
   const i = idea.notes.findIndex((x) => x.id === noteId); if (i < 0) return;
   const [n] = idea.notes.splice(i, 1);
-  saveIdea(idea);
+  saveIdea(idea); refreshMeta(idea);
   offerUndo('Note deleted', () => { idea.notes.splice(Math.min(i, idea.notes.length), 0, n); saveIdea(idea); render(); }, () => {});
 }
 function deleteTake(idea, takeId){
   const i = idea.takes.findIndex((x) => x.id === takeId); if (i < 0) return;
   if (playing && playing.id === takeId) stopPlayback();
   const [t] = idea.takes.splice(i, 1);
-  saveIdea(idea);
+  saveIdea(idea); refreshMeta(idea);
   offerUndo(`${t.name} deleted`, () => { idea.takes.splice(Math.min(i, idea.takes.length), 0, t); saveIdea(idea); render(); }, () => del('audio', t.id));
 }
 function takeMenu(idea, takeId){
