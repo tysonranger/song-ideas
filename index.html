@@ -113,6 +113,30 @@ textarea.field{min-height:120px;line-height:1.4}
 .menuitem{height:52px;border:none;border-radius:14px;background:var(--chip);font-size:16px;font-weight:600;text-align:left;padding:0 16px;
   display:flex;align-items:center;justify-content:space-between}
 .menuitem small{font-weight:400;color:var(--muted);font-size:13px}
+/* menu */
+.mhead{display:flex;align-items:center;justify-content:space-between;margin-top:-4px}
+.mhead h2{font-size:22px}
+.mdone{border:none;background:none;color:var(--accent);font-size:17px;font-weight:600;padding:10px 0 10px 16px;min-height:44px}
+.mstatus{display:flex;align-items:center;gap:12px;padding:14px;border-radius:16px;background:var(--chip)}
+.mstatus > div{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.mstatus b{font-size:16px;font-weight:600}
+.mstatus small{font-size:13px;color:var(--muted)}
+.mdot{width:36px;height:36px;border-radius:18px;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0}
+.mdot.ok{background:#16A34A}.mdot.wait{background:#D97706}.mdot.warn{background:#DC2626}.mdot.off{background:#78716C}
+.mpill{border:none;background:var(--accent);color:var(--accent-text);font-size:14px;font-weight:600;height:34px;padding:0 14px;border-radius:17px;flex-shrink:0}
+.mpath{margin:-6px 4px 0;font-size:12px;color:var(--muted)}
+.mlabel{margin:4px 4px -8px;font-size:12px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--muted)}
+.mgroup{border-radius:16px;background:var(--chip);overflow:hidden}
+.mgroup button{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;border:none;background:none;padding:0 14px;font-size:16px;text-align:left;position:relative}
+.mgroup button + button::before{content:"";position:absolute;top:0;left:56px;right:0;border-top:1px solid var(--line)}
+.mgroup button:active{background:var(--line)}
+.mgroup .mtx{flex:1}
+.mgroup small{font-size:14px;color:var(--muted)}
+.mgroup .chev{color:var(--dash);flex-shrink:0}
+.mic{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0}
+.mred{justify-content:center;color:var(--rec)}
+.mred .mtx{flex:none;font-weight:500}
+.mtip{margin:0;text-align:center;font-size:12px;color:var(--muted)}
 /* recorder */
 .recfor{text-align:center;font-size:13px;color:var(--muted)}
 .recfor b{display:block;font-size:18px;color:var(--text);margin-top:2px;word-break:break-word}
@@ -793,26 +817,45 @@ function restore(){
   };
   inp.click();
 }
+const ICON = {
+  cloud: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.1 9.2 4.5 4.5 0 0 0 7 18z"/></svg>',
+  check: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  sync: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 0 1-14 5.3M4 12a8 8 0 0 1 14-5.3"/><path d="M18 3v4h-4M6 21v-4h4"/></svg>',
+  down: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>',
+  up: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M7 9l5-5 5 5M5 20h14"/></svg>',
+  chev: '<svg class="chev" width="8" height="13" viewBox="0 0 8 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 1.5l5 5-5 5"/></svg>'
+};
 function menu(){
-  const since = lastBackup ? 'Last: ' + new Date(lastBackup).toLocaleDateString() : 'Never';
   const connected = dbx && dbx.refresh && !dbx.broken;
-  const dbxRow = connected
-    ? `<button class="menuitem" id="msync">Save to Dropbox now <small>${dbx.lastSync ? 'Last: ' + new Date(dbx.lastSync).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'Not yet'}</small></button>`
-    : `<button class="menuitem" id="mconnect">Connect Dropbox</button>`;
-  openSheet(`<h2>Song Ideas</h2>
-    ${dbxRow}
-    <button class="menuitem" id="mbk">Back up everything as one file <small>${esc(since)}</small></button>
-    <button class="menuitem" id="mrs">Restore from a backup file</button>
-    <button class="menuitem" id="msearch">Search ideas</button>
-    <p class="hint">Everything is saved on this phone first, so it works underground with no signal. ${connected ? 'Each idea is also copied to Dropbox › 01 Music › Songwriting › Song Ideas as its own folder, whenever you have signal.' : 'Connect Dropbox to copy each idea there as its own folder.'}<br><br>Tip: hold down a recording to rename, share or delete it. Tap a note or an idea name to edit it.</p>
-    ${connected ? '<button class="btn danger" id="mdisc">Disconnect Dropbox</button>' : ''}
-    <button class="btn" id="mclose">Close</button>`, () => {
+  const when = (t) => { const d = new Date(t), today = new Date().toDateString() === d.toDateString();
+    return today ? 'today at ' + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : d.toLocaleDateString([], { month: 'short', day: 'numeric' }); };
+  const waiting = connected ? pendingCount() : 0;
+  let status;
+  if (!dbx || !dbx.refresh){
+    status = `<div class="mstatus"><span class="mdot off">${ICON.cloud}</span><div><b>Only on this phone</b><small>Connect Dropbox to keep a copy of every idea</small></div><button class="mpill" id="mconnect">Connect</button></div>`;
+  } else if (dbx.broken){
+    status = `<div class="mstatus"><span class="mdot warn">${ICON.cloud}</span><div><b>Dropbox needs you to sign in</b><small>Your ideas are safe on this phone</small></div><button class="mpill" id="mconnect">Sign in</button></div>`;
+  } else if (syncing || waiting){
+    status = `<div class="mstatus"><span class="mdot wait">${ICON.sync}</span><div><b>${syncing ? 'Saving to Dropbox…' : `${waiting} waiting for Dropbox`}</b><small>${navigator.onLine ? 'Saves on its own when it can' : 'Saves when you have signal'}</small></div>${syncing ? '' : '<button class="mpill" id="msync">Save now</button>'}</div>`;
+  } else {
+    status = `<div class="mstatus"><span class="mdot ok">${ICON.check}</span><div><b>Everything’s in Dropbox</b><small>${dbx.lastSync ? 'Last saved ' + when(dbx.lastSync) : 'Up to date'}</small></div></div>`;
+  }
+  openSheet(`
+    <div class="mhead"><h2>Song Ideas</h2><button class="mdone" id="mclose">Done</button></div>
+    ${status}
+    ${connected ? '<p class="mpath">Dropbox › 01 Music › Songwriting › Song Ideas</p>' : ''}
+    <div class="mlabel">Backup file</div>
+    <div class="mgroup">
+      <button id="mbk"><span class="mic" style="background:#2563EB">${ICON.down}</span><span class="mtx">Save a backup file</span><small>${lastBackup ? when(lastBackup) : 'Never'}</small>${ICON.chev}</button>
+      <button id="mrs"><span class="mic" style="background:#78716C">${ICON.up}</span><span class="mtx">Restore from a backup</span>${ICON.chev}</button>
+    </div>
+    ${connected ? '<div class="mgroup"><button id="mdisc" class="mred"><span class="mtx">Disconnect Dropbox</span></button></div>' : ''}
+    <p class="mtip">Swipe left to delete · Hold a recording to rename or share</p>`, () => {
     if ($('msync')) $('msync').onclick = () => { closeSheet(); sync(true); };
     if ($('mconnect')) $('mconnect').onclick = dbxConnect;
     if ($('mdisc')) $('mdisc').onclick = () => confirmSheet('Disconnect Dropbox?', 'New ideas will stay on this phone only. Folders already in Dropbox are left alone.', 'Disconnect', async () => { dbx = null; await del('meta', 'dbx'); render(); });
     $('mbk').onclick = backup;
     $('mrs').onclick = restore;
-    $('msearch').onclick = () => { closeSheet(); const s = $('search'); s.classList.remove('hidden'); s.focus(); };
     $('mclose').onclick = closeSheet;
   });
 }
