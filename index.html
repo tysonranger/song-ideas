@@ -195,7 +195,23 @@ async function load(){
   dbx = d ? d.v : null;
   const o = await get('meta', 'ops');
   dbxOps = o ? o.v : [];
+  await assignFileDates();
   render();
+}
+// Ideas imported from Apple Notes have no real date. For their Dropbox folder names they get
+// stand-in dates one day apart, counting back from the day before the import, newest first,
+// so the folders sort in the same order as the app. Set once and kept, so names never shift.
+async function assignFileDates(){
+  const undated = ideas.filter((i) => i.noDate && !i.fileDate).sort((a, b) => b.at - a.at);
+  if (!undated.length) return;
+  const dated = ideas.filter((i) => i.noDate && i.fileDate).map((i) => i.fileDate).sort();
+  const start = dated.length ? new Date(dated[0] + 'T12:00:00') : new Date(Math.max(...undated.map((i) => i.at)));
+  start.setDate(start.getDate() - (dated.length ? 1 : 0));
+  undated.forEach((idea, k) => {
+    const d = new Date(start); d.setDate(d.getDate() - k);
+    idea.fileDate = ymd(d.getTime());
+  });
+  for (const idea of undated) await put('ideas', idea);
 }
 async function saveIdea(idea){
   idea.upd = Date.now();
@@ -697,7 +713,7 @@ function folderNames(){
   // Same title twice gets " (2)", " (3)"... in the order the ideas were started.
   const used = new Map(), out = new Map();
   for (const i of ideas.slice().sort((a, b) => a.at - b.at)){
-    const base = cleanName(i.title) || 'Untitled idea ' + ymd(i.at);
+    const base = (i.fileDate || ymd(i.at)) + ' - ' + (cleanName(i.title) || 'Untitled idea');
     let name = base, n = 1;
     while (used.has(name.toLowerCase())) name = `${base} (${++n})`;
     used.set(name.toLowerCase(), 1); out.set(i.id, name);
