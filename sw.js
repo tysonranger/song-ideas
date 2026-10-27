@@ -1,5 +1,5 @@
 // Song Ideas offline cache. Bump VERSION when the app files change.
-const VERSION = 'song-ideas-v14';
+const VERSION = 'song-ideas-v15';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-512.png'];
 
 self.addEventListener('install', (e) => {

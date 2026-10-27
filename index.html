@@ -377,7 +377,8 @@ function newIdea(){
   draft = { id: uid(), title: '', notes: [], takes: [], at: now, upd: now };
   freshId = draft.id;
   render();
-  window.scrollTo(0, 0);
+  const y = window.scrollY;
+  if (y){ window.scrollTo(0, 0); slideFrom(-y); }
   beginEdit('title', draft);
 }
 function beginEdit(kind, idea, noteId){
@@ -413,8 +414,7 @@ function beginEdit(kind, idea, noteId){
   grow(ta);
   document.body.classList.add('typing');
   placeForTyping(ta);
-  ta.focus({ preventScroll: true });
-  try { ta.setSelectionRange(ta.value.length, ta.value.length); } catch (e) {}
+  focusBox(ed);
 }
 function finishEdit(ed, opts = {}){
   if (!ed || ed.done) return;
@@ -468,7 +468,56 @@ function placeForTyping(el){
   const want = Math.max(header, vTop) + 10;
   const limit = Math.min(window.innerHeight * 0.5, vBottom - 40);
   const r = el.getBoundingClientRect();
-  if (r.top < want || r.bottom > limit) window.scrollBy(0, r.top - want);
+  if (r.top >= want && r.bottom <= limit) return;
+  window.scrollBy(0, r.top - want);
+  slideFrom(r.top - el.getBoundingClientRect().top);
+}
+// The page has already jumped to its new spot; draw it where it was and glide it there,
+// timed with the keyboard sliding up, so your eyes can follow it.
+let slideUntil = 0;
+function slideFrom(shift){
+  if (Math.abs(shift) < 2) return;
+  const lim = window.innerHeight * 0.6;
+  shift = Math.max(-lim, Math.min(lim, shift));
+  const els = [$('banner'), $('cols'), $('list')];
+  els.forEach((e) => { e.style.transition = 'none'; e.style.transform = `translateY(${shift}px)`; });
+  void document.body.offsetHeight;
+  els.forEach((e) => { e.style.transition = 'transform .32s cubic-bezier(.25,.8,.25,1)'; e.style.transform = ''; });
+  slideUntil = Date.now() + 330;
+  setTimeout(() => els.forEach((e) => { e.style.transition = ''; }), 360);
+}
+// While the page glides, an invisible box near the top holds the keyboard open, so the iPhone
+// doesn't try to scroll on its own. The real box takes over as soon as the glide ends.
+let kbd = null;
+function keyboardHolder(){
+  if (!kbd){
+    kbd = document.createElement('input');
+    kbd.type = 'text'; kbd.tabIndex = -1;
+    kbd.setAttribute('autocomplete', 'off'); kbd.setAttribute('autocapitalize', 'sentences'); kbd.setAttribute('aria-hidden', 'true');
+    kbd.style.cssText = 'position:fixed;top:12px;left:0;width:2px;height:2px;opacity:0;font-size:16px;border:0;padding:0;margin:0;pointer-events:none';
+    document.body.appendChild(kbd);
+  }
+  return kbd;
+}
+function focusBox(ed){
+  const ta = ed.ta;
+  const put = () => {
+    clearTimeout(ed.handoff); ed.handoff = 0;
+    if (kbd){ kbd.oninput = kbd.onkeydown = null; }
+    if (editing !== ed || !ta.isConnected){ if (kbd && document.activeElement === kbd) kbd.blur(); return false; }
+    if (kbd && kbd.value){ ta.value += kbd.value; kbd.value = ''; grow(ta); }
+    ta.focus({ preventScroll: true });
+    try { ta.setSelectionRange(ta.value.length, ta.value.length); } catch (e) {}
+    return true;
+  };
+  const wait = slideUntil - Date.now();
+  if (wait <= 0) return put();
+  const k = keyboardHolder();
+  k.value = '';
+  k.focus({ preventScroll: true });
+  k.oninput = () => put();
+  k.onkeydown = (e) => { if (e.key === 'Enter'){ e.preventDefault(); if (put()) finishEdit(ed, { next: true }); } else put(); };
+  ed.handoff = setTimeout(put, wait);
 }
 function afterEdit(){ setTimeout(() => { if (!editing && needRender) render(); }, 700); }
 
