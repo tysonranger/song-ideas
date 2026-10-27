@@ -301,9 +301,7 @@ const TRASH = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" strok
 const noteHTML = (n) => `<div class="sw notesw" data-swipe="note" data-note="${n.id}"><button class="sw-del" data-del aria-label="Delete note">${TRASH}</button><button class="bubble sw-body" data-act="note" data-note="${n.id}">${esc(n.text)}</button></div>`;
 const NOTE_IC = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 7h14M5 12h14M5 17h9"/></svg>';
 const MIC_IC = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
-const metaHTML = (idea) => (idea.noDate ? '' : `<span class="date">${fmtDate(idea.at)}</span>`)
-  + (idea.notes.length ? `<span class="badge bn">${NOTE_IC}${idea.notes.length}</span>` : '')
-  + (idea.takes.length ? `<span class="badge bt">${MIC_IC}${idea.takes.length}</span>` : '');
+const metaHTML = (idea) => (idea.noDate ? '' : `<span class="date">${fmtDate(idea.at)}</span>`);
 const titleHTML = (idea) => `<button class="title${idea.title ? '' : ' untitled'}" data-act="title">${esc(idea.title || 'Untitled idea')}<span class="meta">${metaHTML(idea)}</span></button>`;
 function refreshMeta(idea){
   const m = document.querySelector(`.row[data-id="${idea.id}"] .tcell .meta`);
