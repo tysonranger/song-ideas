@@ -47,18 +47,36 @@ h1{margin:0;font-size:30px;font-weight:700;letter-spacing:-.5px}
 .banner{margin:8px 12px 0;padding:10px 12px;border-radius:12px;background:var(--accent-soft);font-size:13px;
   display:flex;align-items:center;justify-content:space-between;gap:10px}
 .banner button{border:none;background:none;color:var(--accent);font-weight:700;font-size:13px;padding:8px 4px}
-.cols,.row{display:grid;grid-template-columns:88px minmax(0,1fr) 108px;gap:8px}
+.cols,.row{display:grid;grid-template-columns:104px minmax(0,1fr) 100px;gap:10px}
 .cols{padding:8px 22px 6px;font-size:11px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--muted)}
 .list{display:flex;flex-direction:column;gap:8px;padding:0 12px 24px}
 .row{padding:12px 10px;background:var(--card);border-radius:14px;border:1px solid var(--line);align-items:start}
-.row.fresh{border:2px solid var(--accent)}
-.title{border:none;background:none;padding:0;text-align:left;font-size:15px;font-weight:650;line-height:1.25;
+.row.fresh{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.title{border:none;background:none;padding:0;text-align:left;font-size:18px;font-weight:700;line-height:1.22;letter-spacing:-.2px;
   word-break:break-word;min-height:44px;display:block;width:100%}
 .title.untitled{color:var(--muted);font-weight:500}
-.date{display:block;font-size:11px;color:var(--muted);margin-top:4px;font-weight:400}
+.date{display:block;font-size:12px;color:var(--muted);margin-top:5px;font-weight:400;letter-spacing:0}
 .notes{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0}
-.bubble{border:none;text-align:left;font-size:13px;line-height:1.35;background:var(--chip);color:var(--chip-text);
-  border-radius:14px 14px 14px 4px;padding:7px 10px;max-width:100%;white-space:pre-wrap;word-break:break-word}
+.bubble{border:none;text-align:left;font-size:14px;line-height:1.38;background:var(--chip);color:var(--chip-text);
+  border-radius:14px 14px 14px 4px;padding:8px 11px;max-width:100%;white-space:pre-wrap;word-break:break-word}
+/* typing right in the list */
+.ed{display:block;width:100%;border:1.5px solid var(--accent);background:var(--field);color:var(--text);font:inherit;
+  font-size:16px;line-height:1.38;border-radius:14px 14px 14px 4px;padding:7px 10px;resize:none;outline:none;overflow:hidden;min-height:40px}
+.ed.edtitle{font-size:18px;font-weight:700;line-height:1.22;border-radius:12px}
+.ed::placeholder{color:var(--muted);font-weight:400}
+/* swipe left to delete */
+.sw{position:relative;overflow:hidden;max-width:100%}
+.sw.rowsw{border-radius:14px}
+.sw.notesw{border-radius:14px 14px 14px 4px}
+.sw.takesw{border-radius:22px}
+.sw-body{position:relative;z-index:1;transition:transform .22s ease;touch-action:pan-y;width:100%}
+.sw:not(.swiping):not(.open) > .sw-del{visibility:hidden}
+.sw-del{position:absolute;top:0;right:0;bottom:0;border:none;background:#DC2626;color:#fff;font-weight:700;font-size:14px;
+  display:flex;align-items:center;justify-content:flex-end;padding:0 18px;width:100%}
+.sw.notesw .sw-del,.sw.takesw .sw-del{padding:0 12px}
+.undo{position:fixed;left:12px;right:12px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:40;display:flex;align-items:center;
+  justify-content:space-between;gap:12px;background:var(--text);color:var(--bg);border-radius:14px;padding:6px 6px 6px 16px;font-size:15px;max-width:520px;margin:0 auto}
+.undo button{border:none;background:transparent;color:var(--accent);font-weight:700;font-size:15px;padding:10px 14px;min-height:44px}
 .add{height:40px;padding:0 12px;border:1.5px dashed var(--dash);border-radius:20px;background:transparent;
   font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;color:var(--muted)}
 .takes{display:flex;flex-direction:column;gap:6px}
@@ -240,15 +258,36 @@ function matches(idea){
   const q = query.toLowerCase();
   return (idea.title || '').toLowerCase().includes(q) || idea.notes.some((n) => n.text.toLowerCase().includes(q));
 }
+const TRASH = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>';
+const noteHTML = (n) => `<div class="sw notesw" data-swipe="note" data-note="${n.id}"><button class="sw-del" data-del aria-label="Delete note">${TRASH}</button><button class="bubble sw-body" data-act="note" data-note="${n.id}">${esc(n.text)}</button></div>`;
+const titleHTML = (idea) => `<button class="title${idea.title ? '' : ' untitled'}" data-act="title">${esc(idea.title || 'Untitled idea')}${idea.noDate ? '' : `<span class="date">${fmtDate(idea.at)}</span>`}</button>`;
+function rowHTML(idea){
+  return `
+    <div class="sw rowsw" data-swipe="idea" data-id="${idea.id}"><button class="sw-del" data-del>Delete</button>
+    <section class="row sw-body${idea.id === freshId ? ' fresh' : ''}" data-id="${idea.id}">
+      <div class="tcell">${titleHTML(idea)}</div>
+      <div class="notes">
+        ${idea.notes.map(noteHTML).join('')}
+        <button class="add" data-act="addnote">${PLUS} Note</button>
+      </div>
+      <div class="takes">
+        ${idea.takes.map((t) => `<div class="sw takesw" data-swipe="take" data-take="${t.id}"><button class="sw-del" data-del aria-label="Delete recording">${TRASH}</button><button class="take sw-body" data-act="take" data-take="${t.id}" aria-label="Play ${esc(t.name)}"><span class="fill"></span>${playing && playing.id === t.id ? PAUSE : PLAY}<span class="lbl"><span class="nm">${esc(t.name)}</span><span class="du">${fmtDur(t.dur)}</span></span></button></div>`).join('')}
+        <button class="rec" data-act="record">${PLUS} Record</button>
+      </div>
+    </section></div>`;
+}
 function render(){
   const list = $('list');
+  $('count').textContent = countText();
+  renderBanner();
+  if (editing || (swipe && swipe.on)){ needRender = true; return; } // never rebuild the list under someone's typing or swiping
+  needRender = false; openSw = null;
   const sorted = ideas.slice().sort((a, b) => b.at - a.at);
   const shown = sorted.filter(matches);
-  $('count').textContent = countText();
+  if (draft && !query) shown.unshift(draft);
   $('search').classList.toggle('hidden', ideas.length < 6 && !query);
   $('cols').classList.toggle('hidden', !shown.length);
-  renderBanner();
-  if (!ideas.length){
+  if (!ideas.length && !draft){
     list.innerHTML = '<div class="empty">No ideas yet.<br>Tap <b>New idea</b> to add your first one.</div>';
     return;
   }
@@ -256,20 +295,7 @@ function render(){
     list.innerHTML = `<div class="empty">Nothing matches “${esc(query)}”.</div>`;
     return;
   }
-  list.innerHTML = shown.map((idea) => `
-    <section class="row${idea.id === freshId ? ' fresh' : ''}" data-id="${idea.id}">
-      <div>
-        <button class="title${idea.title ? '' : ' untitled'}" data-act="title">${esc(idea.title || 'Untitled idea')}${idea.noDate ? '' : `<span class="date">${fmtDate(idea.at)}</span>`}</button>
-      </div>
-      <div class="notes">
-        ${idea.notes.map((n) => `<button class="bubble" data-act="note" data-note="${n.id}">${esc(n.text)}</button>`).join('')}
-        <button class="add" data-act="addnote">${PLUS} Note</button>
-      </div>
-      <div class="takes">
-        ${idea.takes.map((t) => `<button class="take" data-act="take" data-take="${t.id}" aria-label="Play ${esc(t.name)}"><span class="fill"></span>${playing && playing.id === t.id ? PAUSE : PLAY}<span class="lbl"><span class="nm">${esc(t.name)}</span><span class="du">${fmtDur(t.dur)}</span></span></button>`).join('')}
-        <button class="rec" data-act="record">${PLUS} Record</button>
-      </div>
-    </section>`).join('');
+  list.innerHTML = shown.map(rowHTML).join('');
 }
 function renderBanner(){
   const b = $('banner');
@@ -331,53 +357,152 @@ function confirmSheet(title, hint, label, onYes){
   });
 }
 
-/* ---------- actions ---------- */
+/* ---------- actions: typing right in the list ---------- */
+let editing = null, needRender = false, draft = null, lastDown = null;
+const findIdea = (id) => ideas.find((x) => x.id === id) || (draft && draft.id === id ? draft : null);
+const elFrom = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; };
+function grow(ta){ ta.style.height = 'auto'; ta.style.height = (ta.scrollHeight + 3) + 'px'; }
+// Tapping any button while typing saves what was typed first, then does what was tapped.
+document.addEventListener('pointerdown', (e) => {
+  lastDown = e.target;
+  if (editing && !editing.ta.contains(e.target) && e.target.closest('button, input')) finishEdit(editing);
+}, true);
+
 function newIdea(){
-  textSheet({
-    title: 'New idea', placeholder: 'Name it (you can change it later)', saveLabel: 'Add',
-    onSave: async (v) => {
-      const idea = { id: uid(), title: v, notes: [], takes: [], at: Date.now(), upd: Date.now() };
-      freshId = idea.id;
-      query = ''; $('search').value = '';
-      await saveIdea(idea);
-      render();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (editing) finishEdit(editing);
+  closeSwipe();
+  query = ''; $('search').value = '';
+  const now = Date.now();
+  draft = { id: uid(), title: '', notes: [], takes: [], at: now, upd: now };
+  freshId = draft.id;
+  render();
+  window.scrollTo(0, 0);
+  beginEdit('title', draft);
+}
+function beginEdit(kind, idea, noteId){
+  if (editing) finishEdit(editing);
+  closeSwipe();
+  const row = document.querySelector(`.row[data-id="${idea.id}"]`); if (!row) return;
+  const ta = document.createElement('textarea');
+  ta.className = 'ed' + (kind === 'title' ? ' edtitle' : '');
+  ta.rows = 1;
+  ta.setAttribute('autocomplete', 'off');
+  ta.setAttribute('autocapitalize', 'sentences');
+  ta.setAttribute('enterkeyhint', kind === 'note' || (kind === 'title' && idea !== draft) ? 'done' : 'next');
+  if (kind === 'title'){
+    const cell = row.querySelector('.tcell');
+    ta.value = idea.title || ''; ta.placeholder = 'Name the idea';
+    cell.innerHTML = ''; cell.appendChild(ta);
+  } else if (kind === 'note'){
+    const n = idea.notes.find((x) => x.id === noteId); if (!n) return;
+    ta.value = n.text; ta.placeholder = 'Type a note';
+    row.querySelector(`.sw[data-note="${noteId}"]`).replaceWith(ta);
+  } else {
+    const add = row.querySelector('[data-act=addnote]');
+    ta.placeholder = 'Type a note';
+    add.before(ta); add.classList.add('hidden');
+  }
+  const ed = editing = { kind, idea, noteId, ta, row, done: false };
+  ta.addEventListener('input', () => grow(ta));
+  ta.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); finishEdit(ed, { next: true }); }
+    else if (e.key === 'Escape'){ e.preventDefault(); finishEdit(ed, { cancel: true }); }
+  });
+  ta.addEventListener('blur', () => finishEdit(ed));
+  grow(ta);
+  ta.focus();
+  try { ta.setSelectionRange(ta.value.length, ta.value.length); } catch (e) {}
+}
+function finishEdit(ed, opts = {}){
+  if (!ed || ed.done) return;
+  ed.done = true;
+  if (editing === ed) editing = null;
+  const { kind, idea, ta, row } = ed;
+  const v = opts.cancel ? null : ta.value.trim();
+  let then = null;
+  if (kind === 'title'){
+    const cell = ta.parentNode;
+    if (idea === draft){
+      // A brand-new idea is kept once it has a name, or when a button in its row was tapped (e.g. + Record).
+      const keep = v || (v !== null && !opts.next && lastDown && row.contains(lastDown) && !ta.contains(lastDown));
+      draft = null;
+      if (!keep){ const sw = row.closest('.sw'); if (sw) sw.remove(); if (!ideas.length) needRender = true; return afterEdit(); }
+      idea.title = v; idea.at = idea.upd = Date.now();
+      ideas.push(idea); saveIdea(idea);
+      if (opts.next) then = () => beginEdit('addnote', idea);
+    } else if (v !== null && v !== idea.title){ idea.title = v; saveIdea(idea); }
+    if (cell) cell.innerHTML = titleHTML(idea);
+  } else if (kind === 'note'){
+    const i = idea.notes.findIndex((x) => x.id === ed.noteId), n = idea.notes[i];
+    if (!n) ta.remove();
+    else if (v === null){ ta.replaceWith(elFrom(noteHTML(n))); }
+    else if (!v){ ta.remove(); deleteNote(idea, n.id); }
+    else { if (v !== n.text){ n.text = v; saveIdea(idea); } ta.replaceWith(elFrom(noteHTML(n))); }
+  } else {
+    if (v){
+      const n = { id: uid(), text: v, at: Date.now() };
+      idea.notes.push(n); freshId = idea.id; saveIdea(idea);
+      ta.before(elFrom(noteHTML(n)));
+      if (opts.next){ // keep the same box open for the next bullet, so the keyboard stays up
+        ta.value = ''; grow(ta); ed.done = false; editing = ed; return;
+      }
     }
+    const add = row.querySelector('[data-act=addnote]');
+    ta.remove(); if (add) add.classList.remove('hidden');
+  }
+  $('count').textContent = countText();
+  if (then) then(); else afterEdit();
+}
+function afterEdit(){ setTimeout(() => { if (!editing && needRender) render(); }, 700); }
+
+/* ---------- delete, with Undo ---------- */
+let pendingDel = null;
+function offerUndo(msg, undo, commit){
+  flushUndo();
+  const bar = document.createElement('div');
+  bar.className = 'undo'; bar.innerHTML = `<span>${esc(msg)}</span><button type="button">Undo</button>`;
+  document.body.appendChild(bar);
+  const p = pendingDel = { bar, commit, timer: setTimeout(flushUndo, 6000) };
+  bar.querySelector('button').onclick = () => {
+    if (pendingDel !== p) return;
+    clearTimeout(p.timer); bar.remove(); pendingDel = null; undo();
+  };
+}
+function flushUndo(){
+  const p = pendingDel; if (!p) return;
+  pendingDel = null; clearTimeout(p.timer); p.bar.remove();
+  Promise.resolve(p.commit()).catch(() => {});
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) flushUndo(); });
+window.addEventListener('pagehide', flushUndo);
+
+function deleteIdea(idea){
+  if (editing && editing.idea === idea){ editing.done = true; editing = null; }
+  if (playing && idea.takes.some((t) => t.id === playing.id)) stopPlayback();
+  if (idea === draft){ draft = null; render(); return; }
+  ideas = ideas.filter((x) => x !== idea);
+  render();
+  // Nothing is really removed (here or in Dropbox) until the Undo has gone away.
+  offerUndo(`Deleted “${idea.title || 'Untitled idea'}”`, () => { if (!ideas.includes(idea)) ideas.push(idea); render(); }, async () => {
+    for (const t of idea.takes) await del('audio', t.id);
+    await del('ideas', idea.id);
+    if (idea.sync && idea.sync.folder) await queueOp({ op: 'delete', path: DBX_ROOT + '/' + idea.sync.folder });
+    $('count').textContent = countText();
+    scheduleSync();
   });
 }
-function editTitle(idea){
-  textSheet({
-    title: 'Idea name', value: idea.title, placeholder: 'Name this idea',
-    onSave: async (v) => { idea.title = v; await saveIdea(idea); render(); },
-    deleteLabel: 'Delete this whole idea',
-    onDelete: () => confirmSheet('Delete this idea?', `“${idea.title || 'Untitled idea'}” and its ${idea.notes.length} note${idea.notes.length === 1 ? '' : 's'} and ${idea.takes.length} recording${idea.takes.length === 1 ? '' : 's'} will be gone for good.`, 'Delete', async () => {
-      stopPlayback();
-      for (const t of idea.takes) await del('audio', t.id);
-      await del('ideas', idea.id);
-      ideas = ideas.filter((x) => x.id !== idea.id);
-      if (idea.sync && idea.sync.folder) await queueOp({ op: 'delete', path: DBX_ROOT + '/' + idea.sync.folder });
-      render(); toast('Idea deleted'); scheduleSync();
-    })
-  });
+function deleteNote(idea, noteId){
+  const i = idea.notes.findIndex((x) => x.id === noteId); if (i < 0) return;
+  const [n] = idea.notes.splice(i, 1);
+  saveIdea(idea);
+  offerUndo('Note deleted', () => { idea.notes.splice(Math.min(i, idea.notes.length), 0, n); saveIdea(idea); render(); }, () => {});
 }
-function addNote(idea){
-  textSheet({
-    title: 'Add a note', hint: 'Type it, or tap the mic on your keyboard to speak.', multiline: true, saveLabel: 'Add',
-    placeholder: idea.title ? `About “${idea.title}”…` : 'What’s the idea?',
-    onSave: async (v) => { if (!v) return; idea.notes.push({ id: uid(), text: v, at: Date.now() }); freshId = idea.id; await saveIdea(idea); render(); }
-  });
-}
-function editNote(idea, noteId){
-  const n = idea.notes.find((x) => x.id === noteId); if (!n) return;
-  textSheet({
-    title: 'Edit note', value: n.text, multiline: true,
-    onSave: async (v) => {
-      if (!v) idea.notes = idea.notes.filter((x) => x.id !== noteId); else n.text = v;
-      await saveIdea(idea); render();
-    },
-    deleteLabel: 'Delete note',
-    onDelete: async () => { idea.notes = idea.notes.filter((x) => x.id !== noteId); await saveIdea(idea); render(); toast('Note deleted'); }
-  });
+function deleteTake(idea, takeId){
+  const i = idea.takes.findIndex((x) => x.id === takeId); if (i < 0) return;
+  if (playing && playing.id === takeId) stopPlayback();
+  const [t] = idea.takes.splice(i, 1);
+  saveIdea(idea);
+  offerUndo(`${t.name} deleted`, () => { idea.takes.splice(Math.min(i, idea.takes.length), 0, t); saveIdea(idea); render(); }, () => del('audio', t.id));
 }
 function takeMenu(idea, takeId){
   const t = idea.takes.find((x) => x.id === takeId); if (!t) return;
@@ -389,11 +514,7 @@ function takeMenu(idea, takeId){
     $('mclose').onclick = closeSheet;
     $('mren').onclick = () => textSheet({ title: 'Rename recording', value: t.name, onSave: async (v) => { if (v){ t.name = v; await saveIdea(idea); render(); } } });
     $('mshare').onclick = async () => { closeSheet(); await shareTake(idea, t); };
-    $('mdel').onclick = () => confirmSheet('Delete this recording?', `“${t.name}” will be gone for good.`, 'Delete', async () => {
-      if (playing && playing.id === t.id) stopPlayback();
-      idea.takes = idea.takes.filter((x) => x.id !== t.id);
-      await del('audio', t.id); await saveIdea(idea); render(); toast('Recording deleted');
-    });
+    $('mdel').onclick = () => { closeSheet(); deleteTake(idea, t.id); render(); };
   });
 }
 async function shareTake(idea, t){
@@ -861,21 +982,96 @@ list.addEventListener('pointerdown', (e) => {
   const t = e.target.closest('.take'); if (!t) return;
   pressed = false; pressTarget = t;
   pressTimer = setTimeout(() => {
+    if (swipe && swipe.on) return;
     pressed = true;
-    const idea = ideas.find((x) => x.id === t.closest('.row').dataset.id);
+    const idea = findIdea(t.closest('.row').dataset.id);
     if (idea) takeMenu(idea, t.dataset.take);
   }, 500);
 });
 ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) => list.addEventListener(ev, () => clearTimeout(pressTimer)));
 list.addEventListener('contextmenu', (e) => { if (e.target.closest('.take')) e.preventDefault(); });
+
+/* ---------- swipe left to delete (ideas, notes and recordings) ---------- */
+let swipe = null, openSw = null, swipeEnd = 0;
+const REVEAL = { idea: 88, note: 54, take: 54 };
+function setX(sw, x, anim){
+  const b = sw.querySelector(':scope > .sw-body'); if (!b) return;
+  b.style.transition = anim ? '' : 'none';
+  b.style.transform = x ? `translateX(${x}px)` : '';
+}
+function closeSwipe(){
+  const s = openSw; if (!s) return;
+  openSw = null; setX(s, 0, true);
+  setTimeout(() => { if (openSw !== s) s.classList.remove('open', 'swiping'); }, 230);
+}
+function swipeDelete(sw){
+  const row = sw.dataset.swipe === 'idea' ? sw.querySelector('.row') : sw.closest('.row');
+  const idea = row && findIdea(row.dataset.id); if (!idea) return;
+  if (openSw === sw) openSw = null;
+  if (sw.dataset.swipe === 'idea') return deleteIdea(idea);
+  sw.remove();
+  if (sw.dataset.swipe === 'note') deleteNote(idea, sw.dataset.note);
+  else deleteTake(idea, sw.dataset.take);
+}
+list.addEventListener('pointerdown', (e) => {
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  if (openSw){
+    // Like iPhone apps: with a Delete showing, a tap anywhere else just tucks it away.
+    if (!(e.target.closest('.sw-del') && e.target.closest('.sw') === openSw)){ closeSwipe(); swipeEnd = Date.now(); }
+    return;
+  }
+  if (e.target.closest('textarea, .sw-del')) return;
+  const sw = e.target.closest('.sw'); if (!sw) return;
+  swipe = { sw, id: e.pointerId, x0: e.clientX, y0: e.clientY, on: false, w: sw.offsetWidth, kind: sw.dataset.swipe };
+});
+list.addEventListener('pointermove', (e) => {
+  const s = swipe; if (!s || e.pointerId !== s.id) return;
+  const dx = e.clientX - s.x0, dy = e.clientY - s.y0;
+  if (!s.on){
+    if (Math.abs(dy) > 10 && Math.abs(dy) >= Math.abs(dx)){ swipe = null; return; }
+    if (dx > -10 || Math.abs(dx) < Math.abs(dy) * 1.3) return;
+    s.on = true; clearTimeout(pressTimer);
+    s.sw.classList.add('swiping');
+    try { s.sw.setPointerCapture(e.pointerId); } catch (err) {}
+  }
+  e.preventDefault();
+  setX(s.sw, Math.max(-s.w, Math.min(0, dx)), false);
+});
+function endSwipe(e){
+  const s = swipe; if (!s || e.pointerId !== s.id) return;
+  swipe = null;
+  if (!s.on) return;
+  swipeEnd = Date.now();
+  const dx = e.clientX - s.x0, R = REVEAL[s.kind] || 60;
+  const full = Math.min(s.w * 0.8, Math.max(s.w * 0.55, R + 70));
+  if (e.type !== 'pointercancel' && dx <= -full){
+    setX(s.sw, -s.w, true);
+    setTimeout(() => swipeDelete(s.sw), 200);
+  } else if (e.type !== 'pointercancel' && dx < -R / 2){
+    setX(s.sw, -R, true); s.sw.classList.add('open'); openSw = s.sw;
+  } else {
+    setX(s.sw, 0, true);
+    setTimeout(() => s.sw.classList.remove('swiping'), 230);
+  }
+  if (needRender) setTimeout(() => { if (!editing && !swipe && needRender) render(); }, 260);
+}
+list.addEventListener('pointerup', endSwipe);
+list.addEventListener('pointercancel', endSwipe);
+// A swipe (or the tap that closes one) never also counts as a tap on what's underneath.
 list.addEventListener('click', (e) => {
+  if (Date.now() - swipeEnd < 400 && !e.target.closest('.sw-del')){ e.stopPropagation(); e.preventDefault(); }
+}, true);
+
+list.addEventListener('click', (e) => {
+  const d = e.target.closest('[data-del]');
+  if (d){ swipeDelete(d.closest('.sw')); return; }
   const b = e.target.closest('[data-act]'); if (!b) return;
-  const idea = ideas.find((x) => x.id === b.closest('.row').dataset.id); if (!idea) return;
+  const row = b.closest('.row'); const idea = row && findIdea(row.dataset.id); if (!idea) return;
   const act = b.dataset.act;
   if (act === 'take'){ if (pressed){ pressed = false; return; } return togglePlay(b.dataset.take); }
-  if (act === 'title') return editTitle(idea);
-  if (act === 'addnote') return addNote(idea);
-  if (act === 'note') return editNote(idea, b.dataset.note);
+  if (act === 'title') return beginEdit('title', idea);
+  if (act === 'addnote') return beginEdit('addnote', idea);
+  if (act === 'note') return beginEdit('note', idea, b.dataset.note);
   if (act === 'record') return startRecording(idea);
 });
 
@@ -886,7 +1082,7 @@ if ('serviceWorker' in navigator && location.protocol === 'https:'){
   let reloading = false;
   const applyUpdate = () => {
     if (reloading) return;
-    if (recState || $('layer').innerHTML){ setTimeout(applyUpdate, 2000); return; }
+    if (recState || $('layer').innerHTML || editing || draft || pendingDel || openSw){ setTimeout(applyUpdate, 2000); return; }
     reloading = true; location.reload();
   };
   if (navigator.serviceWorker.controller) navigator.serviceWorker.addEventListener('controllerchange', applyUpdate);
