@@ -744,11 +744,11 @@ function takeNames(idea){
   return out;
 }
 function descText(idea){
-  const d = new Date(idea.at).toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' });
-  const lines = [idea.title || 'Untitled idea', idea.noDate ? 'From the Apple Notes "Song ideas" list' : 'Started ' + d, ''];
-  for (const n of idea.notes) lines.push('• ' + n.text.replace(/\n/g, '\n  '), '');
-  if (!idea.notes.length) lines.push('(No notes yet)', '');
-  return lines.join('\n');
+  // Just the idea, then its notes as bullets.
+  const lines = [idea.title || 'Untitled idea', ''];
+  for (const n of idea.notes) lines.push('• ' + n.text.replace(/\n/g, '\n  '));
+  if (!idea.notes.length) lines.push('(No notes)');
+  return lines.join('\n') + '\n';
 }
 function needsSync(idea, names){
   const s = idea.sync;
