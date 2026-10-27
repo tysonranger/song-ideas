@@ -47,7 +47,7 @@ h1{margin:0;font-size:30px;font-weight:700;letter-spacing:-.5px}
 .banner{margin:8px 12px 0;padding:10px 12px;border-radius:12px;background:var(--accent-soft);font-size:13px;
   display:flex;align-items:center;justify-content:space-between;gap:10px}
 .banner button{border:none;background:none;color:var(--accent);font-weight:700;font-size:13px;padding:8px 4px}
-.cols,.row{display:grid;grid-template-columns:126px minmax(0,1fr) 92px;gap:8px}
+.cols,.row{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:10px}
 .cols{padding:8px 20px 6px;font-size:11px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--muted)}
 .list{display:flex;flex-direction:column;gap:8px;padding:0 10px 24px}
 .row{padding:12px 9px;background:var(--card);border-radius:14px;border:1px solid var(--line);align-items:start}
@@ -68,7 +68,7 @@ h1{margin:0;font-size:30px;font-weight:700;letter-spacing:-.5px}
 .sw{position:relative;overflow:hidden;max-width:100%}
 .sw.rowsw{border-radius:14px}
 .sw.notesw{border-radius:14px 14px 14px 4px}
-.sw.takesw{border-radius:22px}
+.sw.takesw{border-radius:20px}
 .sw-body{position:relative;z-index:1;transition:transform .22s ease;touch-action:pan-y;width:100%}
 .sw:not(.swiping):not(.open) > .sw-del{visibility:hidden}
 .sw-del{position:absolute;top:0;right:0;bottom:0;border:none;background:#DC2626;color:#fff;font-weight:700;font-size:14px;
@@ -79,17 +79,18 @@ h1{margin:0;font-size:30px;font-weight:700;letter-spacing:-.5px}
 .undo button{border:none;background:transparent;color:var(--accent);font-weight:700;font-size:15px;padding:10px 14px;min-height:44px}
 .add{height:40px;padding:0 12px;border:1.5px dashed var(--dash);border-radius:20px;background:transparent;
   font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;color:var(--muted)}
-.takes{display:flex;flex-direction:column;gap:6px}
-.take{position:relative;overflow:hidden;height:44px;border:none;border-radius:22px;background:var(--chip);color:var(--chip-text);
-  font-size:12px;font-weight:600;display:flex;align-items:center;gap:7px;padding:0 10px;text-align:left;
+.takes{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px;padding-top:10px;border-top:1px solid var(--line)}
+.takes .takesw{width:auto}
+.take{position:relative;overflow:hidden;height:40px;border:none;border-radius:20px;background:var(--chip);color:var(--chip-text);
+  font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;padding:0 11px 0 10px;text-align:left;
   -webkit-touch-callout:none;user-select:none;-webkit-user-select:none;touch-action:manipulation}
 .take .fill{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--accent);opacity:.22;pointer-events:none}
 .take span,.take svg{position:relative}
-.take .lbl{display:flex;flex-direction:column;min-width:0;line-height:1.2}
+.take .lbl{display:flex;align-items:baseline;gap:5px;min-width:0;line-height:1.2}
 .take .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.take .du{font-size:11px;font-weight:400;color:var(--muted);font-variant-numeric:tabular-nums}
+.take .du{font-size:12px;font-weight:400;color:var(--muted);font-variant-numeric:tabular-nums}
 .take svg{flex-shrink:0}
-.rec{height:44px;border:1.5px dashed var(--accent);border-radius:22px;background:transparent;color:var(--accent);
+.rec{height:40px;padding:0 12px;border:1.5px dashed var(--accent);border-radius:20px;background:transparent;color:var(--accent);
   font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px}
 .empty{padding:48px 24px;text-align:center;color:var(--muted);font-size:15px;line-height:1.5}
 /* sheets */
@@ -124,6 +125,7 @@ textarea.field{min-height:120px;line-height:1.4}
 .mdot{width:36px;height:36px;border-radius:18px;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0}
 .mdot.ok{background:#16A34A}.mdot.wait{background:#D97706}.mdot.warn{background:#DC2626}.mdot.off{background:#78716C}
 .mpill{border:none;background:var(--accent);color:var(--accent-text);font-size:14px;font-weight:600;height:34px;padding:0 14px;border-radius:17px;flex-shrink:0}
+.mpill.quiet{background:transparent;color:var(--accent);padding:0 6px}
 .mpath{margin:-6px 4px 0;font-size:12px;color:var(--muted)}
 .mlabel{margin:4px 4px -8px;font-size:12px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--muted)}
 .mgroup{border-radius:16px;background:var(--chip);overflow:hidden}
@@ -175,7 +177,7 @@ body.typing .list{padding-bottom:60vh}
   <input class="search hidden" id="search" type="search" placeholder="Search ideas and notes" aria-label="Search ideas and notes">
 </header>
 <div id="banner"></div>
-<div class="cols" id="cols"><span>Idea</span><span>Description</span><span>Recordings</span></div>
+<div class="cols" id="cols"><span>Idea</span><span>Description</span></div>
 <main class="list" id="list"></main>
 <div id="layer"></div>
 
@@ -838,7 +840,7 @@ function menu(){
   } else if (syncing || waiting){
     status = `<div class="mstatus"><span class="mdot wait">${ICON.sync}</span><div><b>${syncing ? 'Saving to Dropbox…' : `${waiting} waiting for Dropbox`}</b><small>${navigator.onLine ? 'Saves on its own when it can' : 'Saves when you have signal'}</small></div>${syncing ? '' : '<button class="mpill" id="msync">Save now</button>'}</div>`;
   } else {
-    status = `<div class="mstatus"><span class="mdot ok">${ICON.check}</span><div><b>Everything’s in Dropbox</b><small>${dbx.lastSync ? 'Last saved ' + when(dbx.lastSync) : 'Up to date'}</small></div></div>`;
+    status = `<div class="mstatus"><span class="mdot ok">${ICON.check}</span><div><b>Everything’s in Dropbox</b><small>${dbx.lastSync ? 'Last saved ' + when(dbx.lastSync) : 'Up to date'}</small></div><button class="mpill quiet" id="msync">Save now</button></div>`;
   }
   openSheet(`
     <div class="mhead"><h2>Song Ideas</h2><button class="mdone" id="mclose">Done</button></div>
