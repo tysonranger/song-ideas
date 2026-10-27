@@ -482,9 +482,9 @@ function slideFrom(shift){
   const els = [$('banner'), $('cols'), $('list')];
   els.forEach((e) => { e.style.transition = 'none'; e.style.transform = `translateY(${shift}px)`; });
   void document.body.offsetHeight;
-  els.forEach((e) => { e.style.transition = 'transform .32s cubic-bezier(.25,.8,.25,1)'; e.style.transform = ''; });
-  slideUntil = Date.now() + 330;
-  setTimeout(() => els.forEach((e) => { e.style.transition = ''; }), 360);
+  els.forEach((e) => { e.style.transition = 'transform .55s cubic-bezier(.4,0,.2,1)'; e.style.transform = ''; });
+  slideUntil = Date.now() + 560;
+  setTimeout(() => els.forEach((e) => { e.style.transition = ''; }), 600);
 }
 // While the page glides, an invisible box near the top holds the keyboard open, so the iPhone
 // doesn't try to scroll on its own. The real box takes over as soon as the glide ends.
