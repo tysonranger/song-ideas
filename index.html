@@ -128,6 +128,8 @@ textarea.field{min-height:120px;line-height:1.4}
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:40;
   background:var(--text);color:var(--bg);padding:10px 16px;border-radius:20px;font-size:14px;max-width:90vw;text-align:center}
 .hidden{display:none !important}
+body.typing .top{position:static}
+body.typing .list{padding-bottom:60vh}
 </style>
 </head>
 <body>
@@ -403,14 +405,16 @@ function beginEdit(kind, idea, noteId){
     add.before(ta); add.classList.add('hidden');
   }
   const ed = editing = { kind, idea, noteId, ta, row, done: false };
-  ta.addEventListener('input', () => grow(ta));
+  ta.addEventListener('input', () => { grow(ta); keepInView(); });
   ta.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); finishEdit(ed, { next: true }); }
     else if (e.key === 'Escape'){ e.preventDefault(); finishEdit(ed, { cancel: true }); }
   });
   ta.addEventListener('blur', () => finishEdit(ed));
   grow(ta);
-  ta.focus();
+  document.body.classList.add('typing');
+  ta.focus({ preventScroll: true });
+  follow(ta);
   try { ta.setSelectionRange(ta.value.length, ta.value.length); } catch (e) {}
 }
 function finishEdit(ed, opts = {}){
@@ -426,7 +430,7 @@ function finishEdit(ed, opts = {}){
       // A brand-new idea is kept once it has a name, or when a button in its row was tapped (e.g. + Record).
       const keep = v || (v !== null && !opts.next && lastDown && row.contains(lastDown) && !ta.contains(lastDown));
       draft = null;
-      if (!keep){ const sw = row.closest('.sw'); if (sw) sw.remove(); if (!ideas.length) needRender = true; return afterEdit(); }
+      if (!keep){ const sw = row.closest('.sw'); if (sw) sw.remove(); if (!ideas.length) needRender = true; if (!editing) document.body.classList.remove('typing'); return afterEdit(); }
       idea.title = v; idea.at = idea.upd = Date.now();
       ideas.push(idea); saveIdea(idea);
       if (opts.next) then = () => beginEdit('addnote', idea);
@@ -451,7 +455,33 @@ function finishEdit(ed, opts = {}){
     ta.remove(); if (add) add.classList.remove('hidden');
   }
   $('count').textContent = countText();
+  if (!editing) document.body.classList.remove('typing');
   if (then) then(); else afterEdit();
+}
+// Keep the box being typed in where you can see it: above the keyboard, not under the top bar.
+let followEl = null, followUntil = 0;
+function keepInView(){
+  const el = followEl;
+  if (!el || !el.isConnected || !editing || editing.ta !== el) return;
+  const vv = window.visualViewport;
+  const vTop = vv ? vv.offsetTop : 0, vH = vv ? vv.height : window.innerHeight;
+  const top = vTop + 12, bottom = vTop + vH - 12;
+  const r = el.getBoundingClientRect();
+  if (r.top >= top && r.bottom <= bottom) return;
+  let dy;
+  if (r.height > bottom - top) dy = r.bottom - bottom;                  // longer than the space: keep the end (where you type) showing
+  else dy = r.top - (top + Math.min((bottom - top - r.height) * 0.3, 90)); // otherwise sit it in the upper part of the space
+  window.scrollBy(0, dy);
+}
+function follow(el){
+  followEl = el; followUntil = Date.now() + 1500;
+  keepInView();
+  requestAnimationFrame(keepInView);
+  [150, 350, 600, 900, 1300].forEach((t) => setTimeout(keepInView, t)); // while the keyboard slides up
+}
+if (window.visualViewport){
+  visualViewport.addEventListener('resize', () => { if (editing) keepInView(); });
+  visualViewport.addEventListener('scroll', () => { if (editing && Date.now() < followUntil) keepInView(); });
 }
 function afterEdit(){ setTimeout(() => { if (!editing && needRender) render(); }, 700); }
 
