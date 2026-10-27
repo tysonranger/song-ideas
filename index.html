@@ -74,6 +74,7 @@ h1{margin:0;font-size:30px;font-weight:700;letter-spacing:-.5px}
 .ed{display:block;width:100%;border:1.5px solid var(--accent);background:var(--field);color:var(--text);font:inherit;
   font-size:16px;line-height:1.38;border-radius:14px 14px 14px 4px;padding:7px 10px;resize:none;outline:none;overflow:hidden;min-height:40px}
 .ed.edtitle{font-size:18px;font-weight:700;line-height:1.22;border-radius:12px}
+.eddone{align-self:flex-end;border:none;background:var(--note);color:var(--card);font-size:14px;font-weight:700;height:34px;padding:0 16px;border-radius:17px}
 .ed::placeholder{color:var(--muted);font-weight:400}
 /* swipe left to delete */
 .sw{position:relative;overflow:hidden;max-width:100%}
@@ -430,7 +431,7 @@ function beginEdit(kind, idea, noteId){
   ta.rows = 1;
   ta.setAttribute('autocomplete', 'off');
   ta.setAttribute('autocapitalize', 'sentences');
-  ta.setAttribute('enterkeyhint', kind === 'note' || (kind === 'title' && idea !== draft) ? 'done' : 'next');
+  ta.setAttribute('enterkeyhint', kind === 'note' ? 'enter' : (kind === 'title' && idea !== draft) ? 'done' : 'next');
   if (kind === 'title'){
     const cell = row.querySelector('.tcell');
     ta.value = idea.title || ''; ta.placeholder = 'Name the idea';
@@ -444,9 +445,15 @@ function beginEdit(kind, idea, noteId){
     row.querySelector('.notes').appendChild(ta);
   }
   const ed = editing = { kind, idea, noteId, ta, row, done: false };
+  if (kind === 'note'){
+    // Return makes a new line here, so give an obvious way to finish.
+    const d = document.createElement('button');
+    d.type = 'button'; d.className = 'eddone'; d.textContent = 'Done';
+    ta.after(d); ed.doneBtn = d;
+  }
   ta.addEventListener('input', () => grow(ta));
   ta.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); finishEdit(ed, { next: true }); }
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && kind !== 'note'){ e.preventDefault(); finishEdit(ed, { next: true }); }
     else if (e.key === 'Escape'){ e.preventDefault(); finishEdit(ed, { cancel: true }); }
   });
   ta.addEventListener('blur', () => finishEdit(ed));
@@ -458,6 +465,7 @@ function beginEdit(kind, idea, noteId){
 function finishEdit(ed, opts = {}){
   if (!ed || ed.done) return;
   ed.done = true;
+  if (ed.doneBtn){ ed.doneBtn.remove(); ed.doneBtn = null; }
   if (editing === ed) editing = null;
   const { kind, idea, ta, row } = ed;
   const v = opts.cancel ? null : ta.value.trim();
