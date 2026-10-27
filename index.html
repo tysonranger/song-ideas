@@ -198,20 +198,16 @@ async function load(){
   await assignFileDates();
   render();
 }
-// Ideas imported from Apple Notes have no real date. For their Dropbox folder names they get
-// stand-in dates one day apart, counting back from the day before the import, newest first,
-// so the folders sort in the same order as the app. Set once and kept, so names never shift.
+// Ideas imported from Apple Notes have no real date. Their Dropbox folders get a placeholder
+// shaped like a date but clearly not one: 0000-00-001 for the oldest up to 0000-00-153 for the
+// newest. Sorted by name they sit after every real-dated folder and keep the app's order.
+// Set once and kept, so names never shift.
+const isStandIn = (s) => /^0000-00-\d{3}$/.test(s || '');
 async function assignFileDates(){
-  const undated = ideas.filter((i) => i.noDate && !i.fileDate).sort((a, b) => b.at - a.at);
-  if (!undated.length) return;
-  const dated = ideas.filter((i) => i.noDate && i.fileDate).map((i) => i.fileDate).sort();
-  const start = dated.length ? new Date(dated[0] + 'T12:00:00') : new Date(Math.max(...undated.map((i) => i.at)));
-  start.setDate(start.getDate() - (dated.length ? 1 : 0));
-  undated.forEach((idea, k) => {
-    const d = new Date(start); d.setDate(d.getDate() - k);
-    idea.fileDate = ymd(d.getTime());
-  });
-  for (const idea of undated) await put('ideas', idea);
+  const todo = ideas.filter((i) => i.noDate && !isStandIn(i.fileDate)).sort((a, b) => a.at - b.at);
+  if (!todo.length) return;
+  let n = Math.max(0, ...ideas.filter((i) => isStandIn(i.fileDate)).map((i) => Number(i.fileDate.slice(8))));
+  for (const idea of todo){ idea.fileDate = '0000-00-' + String(++n).padStart(3, '0'); await put('ideas', idea); }
 }
 async function saveIdea(idea){
   idea.upd = Date.now();
@@ -766,7 +762,11 @@ async function syncIdea(idea, names){
       s.folder = r.metadata.name; s.wanted = want;
     } catch (e) {
       if (!notFound(e)) throw e;
-      s.folder = null; s.desc = null; s.takes = {};
+      // Old folder is gone. If one with the new name already exists (renamed elsewhere), adopt it as is.
+      let adopted = false;
+      try { const m = await rpc('files/get_metadata', { path: DBX_ROOT + '/' + want }); adopted = m['.tag'] === 'folder'; } catch (e2) { if (!notFound(e2)) throw e2; }
+      if (adopted){ s.folder = want; s.wanted = want; }
+      else { s.folder = null; s.desc = null; s.takes = {}; }
     }
     await persist();
   }
