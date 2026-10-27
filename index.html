@@ -196,6 +196,7 @@ async function load(){
   const o = await get('meta', 'ops');
   dbxOps = o ? o.v : [];
   await assignFileDates();
+  await renameToTracks();
   render();
 }
 // Ideas imported from Apple Notes have no real date. Their Dropbox folders get a placeholder
@@ -454,6 +455,21 @@ function pickMime(){
   for (const m of ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg']) if (MediaRecorder.isTypeSupported(m)) return m;
   return '';
 }
+function nextTrack(idea){
+  const nums = idea.takes.map((t) => (/^Track (\d+)$/.exec(t.name) || [])[1]).filter(Boolean).map(Number);
+  return nums.length ? Math.max(...nums) + 1 : idea.takes.length + 1;
+}
+// Recordings with an automatic name ("Take 3", "New Recording 5", from earlier versions or Apple Notes)
+// become "Track 1", "Track 2"... in the order they were recorded. Names typed by hand are left alone.
+async function renameToTracks(){
+  const auto = /^(Take \d+|New Recording( \d+)?|Track \d+)$/;
+  for (const idea of ideas){
+    if (!idea.takes.length || !idea.takes.some((t) => /^(Take \d+|New Recording( \d+)?)$/.test(t.name))) continue;
+    idea.takes.sort((a, b) => a.at - b.at);
+    idea.takes.forEach((t, k) => { if (auto.test(t.name)) t.name = 'Track ' + (k + 1); });
+    await put('ideas', idea);
+  }
+}
 async function startRecording(idea){
   stopPlayback();
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || pickMime() === null){
@@ -465,7 +481,7 @@ async function startRecording(idea){
   const mime = pickMime();
   const rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
   const chunks = [];
-  const n = idea.takes.length + 1;
+  const n = nextTrack(idea);
   recState = { idea, stream, rec, chunks, start: Date.now(), keep: true, raf: 0, ctx: null };
   rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
   rec.onstop = () => finishRecording();
@@ -479,7 +495,7 @@ async function startRecording(idea){
       <button class="stop" id="rstop" aria-label="Stop and save"><span></span></button>
       <span style="width:56px;height:56px"></span>
     </div>
-    <p class="hint" style="text-align:center">Tap stop to save it as Take ${n}</p>`, () => {
+    <p class="hint" style="text-align:center">Tap stop to save it as Track ${n}</p>`, () => {
     $('rstop').onclick = () => { recState.keep = true; rec.state !== 'inactive' && rec.stop(); };
     $('rcancel').onclick = () => { recState.keep = false; rec.state !== 'inactive' && rec.stop(); };
   });
@@ -524,13 +540,12 @@ async function finishRecording(){
   const id = uid();
   await put('audio', { id, blob, type });
   const idea = ideas.find((x) => x.id === s.idea.id) || s.idea;
-  const nums = idea.takes.map((t) => (/^Take (\d+)$/.exec(t.name) || [])[1]).filter(Boolean).map(Number);
-  const next = nums.length ? Math.max(...nums) + 1 : idea.takes.length + 1;
-  idea.takes.push({ id, name: 'Take ' + next, dur, at: Date.now(), ext: extFor(type) });
+  const next = nextTrack(idea);
+  idea.takes.push({ id, name: 'Track ' + next, dur, at: Date.now(), ext: extFor(type) });
   freshId = idea.id;
   await saveIdea(idea);
   render();
-  toast('Saved Take ' + next);
+  toast('Saved Track ' + next);
 }
 // if the phone locks or the app is left mid-recording, keep what was captured
 document.addEventListener('visibilitychange', () => {
@@ -720,7 +735,7 @@ function extFor(type){ type = type || ''; return type.includes('mp4') || type.in
 function takeNames(idea){
   const used = new Set(), out = new Map();
   for (const t of idea.takes){
-    const base = cleanName(t.name) || 'Take';
+    const base = cleanName(t.name) || 'Track';
     const ext = t.ext || '.m4a';
     let name = base + ext, n = 1;
     while (used.has(name.toLowerCase())) name = `${base} (${++n})${ext}`;
