@@ -139,6 +139,10 @@ textarea.field{min-height:120px;line-height:1.4}
 .mdot.ok{background:#16A34A}.mdot.wait{background:#D97706}.mdot.warn{background:#DC2626}.mdot.off{background:#78716C}
 .mpill{border:none;background:var(--accent);color:var(--accent-text);font-size:14px;font-weight:600;height:34px;padding:0 14px;border-radius:17px;flex-shrink:0}
 .mpill.quiet{background:transparent;color:var(--accent);padding:0 6px}
+.mwait{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.mwait li{padding:10px 14px;border-radius:12px;background:var(--chip);display:flex;flex-direction:column;gap:2px}
+.mwait b{font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mwait small{font-size:13px;color:var(--muted)}
 .mpath{margin:-6px 4px 0;font-size:12px;color:var(--muted)}
 .mlabel{margin:4px 4px -8px;font-size:12px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--muted)}
 .mgroup{border-radius:16px;background:var(--chip);overflow:hidden}
@@ -861,6 +865,12 @@ function menu(){
     status = `<div class="mstatus"><span class="mdot warn">${ICON.cloud}</span><div><b>Dropbox needs you to sign in</b><small>Your ideas are safe on this phone</small></div><button class="mpill" id="mconnect">Sign in</button></div>`;
   } else if (syncing || waiting){
     status = `<div class="mstatus"><span class="mdot wait">${ICON.sync}</span><div><b>${syncing ? 'Saving to Dropbox…' : `${waiting} waiting for Dropbox`}</b><small>${navigator.onLine ? 'Saves on its own when it can' : 'Saves when you have signal'}</small></div>${syncing ? '' : '<button class="mpill" id="msync">Save now</button>'}</div>`;
+    if (!syncing){
+      const names = folderNames(), esc = (t) => String(t || 'Untitled idea').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
+      const rows = ideas.filter((i) => needsSync(i, names)).map((i) => `<li><b>${esc(i.title)}</b><small>${syncErrors.get(i.id) || 'Not tried yet'}</small></li>`);
+      if (dbxOps.length) rows.push(`<li><b>${dbxOps.length} deleted idea${dbxOps.length > 1 ? 's' : ''} to remove from Dropbox</b><small>${syncErrors.get('ops') || 'Not tried yet'}</small></li>`);
+      if (rows.length) status += `<ul class="mwait">${rows.join('')}</ul>`;
+    }
   } else {
     status = `<div class="mstatus"><span class="mdot ok">${ICON.check}</span><div><b>Everything’s in Dropbox</b><small>${dbx.lastSync ? 'Last saved ' + when(dbx.lastSync) : 'Up to date'}</small></div><button class="mpill quiet" id="msync">Save now</button></div>`;
   }
@@ -930,9 +940,37 @@ async function finishConnect(){
     sync(true);
   } catch (e) { toast('Couldn’t connect Dropbox. Try again.'); }
 }
+const syncErrors = new Map(); // idea id (or 'ops') -> plain-words reason it didn't save
+const wait = (ms) => new Promise((ok) => setTimeout(ok, ms));
+async function dfetch(url, opts){
+  // Retries the hiccups Dropbox expects apps to retry: rate limits, busy folders, server blips, dropped connections.
+  for (let i = 0; ; i++){
+    let r;
+    try { r = await fetch(url, opts); }
+    catch (e) { if (i < 3){ await wait(1500 * (i + 1)); continue; } throw Object.assign(new Error('network'), { summary: 'network' }); }
+    let busy = r.status === 429 || r.status >= 500;
+    if (!busy && r.status === 409){
+      const t = await r.clone().text().catch(() => '');
+      busy = /too_many_write_operations|too_many_requests/.test(t);
+    }
+    if (busy && i < 4){ const ra = +r.headers.get('Retry-After'); await wait((ra ? ra * 1000 : 1500 * (i + 1)) + Math.random() * 500); continue; }
+    return r;
+  }
+}
+function reason(e){
+  const s = (e && (e.summary || e.message)) || '';
+  if (/network/.test(s)) return 'Couldn’t connect to Dropbox';
+  if (/insufficient_space/.test(s)) return 'Your Dropbox is full';
+  if (/too_many|429/.test(s)) return 'Dropbox is busy, trying again shortly';
+  if (/malformed_path|disallowed_name/.test(s)) return 'Dropbox didn’t accept the name';
+  if (/conflict/.test(s)) return 'A file with that name was in the way';
+  if (/not_found/.test(s)) return 'Its folder was moved or deleted in Dropbox';
+  if (/token 5|\b5\d\d\b/.test(s)) return 'Dropbox was having trouble';
+  return 'Dropbox said: ' + (s.replace(/^dropbox \d+ ?/, '').replace(/\/\.+$/, '') || 'unknown error');
+}
 async function token(){
   if (access && access.exp > Date.now() + 60000) return access.token;
-  const r = await fetch('https://api.dropboxapi.com/oauth2/token', {
+  const r = await dfetch('https://api.dropboxapi.com/oauth2/token', {
     method: 'POST', body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: dbx.refresh, client_id: DBX_KEY })
   });
   if (r.status === 400 || r.status === 401){
@@ -951,15 +989,16 @@ async function apiError(r){
   return Object.assign(new Error('dropbox ' + r.status + ' ' + summary), { status: r.status, summary });
 }
 async function rpc(endpoint, body){
-  const r = await fetch('https://api.dropboxapi.com/2/' + endpoint, {
-    method: 'POST', headers: { Authorization: 'Bearer ' + await token(), 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+  const r = await dfetch('https://api.dropboxapi.com/2/' + endpoint, {
+    method: 'POST', headers: { Authorization: 'Bearer ' + await token(), 'Content-Type': 'application/json' }, body: JSON.stringify(body, (k, v) => k === '__retried' ? undefined : v)
   });
+  if (r.status === 401 && !body.__retried){ access = null; return rpc(endpoint, Object.assign(body, { __retried: true })); }
   if (!r.ok) throw await apiError(r);
   return r.json();
 }
 const asciiJSON = (o) => JSON.stringify(o).replace(/[\u007f-￿]/g, (c) => '\\u' + ('000' + c.charCodeAt(0).toString(16)).slice(-4));
 async function upload(path, blob){
-  const r = await fetch('https://content.dropboxapi.com/2/files/upload', {
+  const r = await dfetch('https://content.dropboxapi.com/2/files/upload', {
     method: 'POST',
     headers: { Authorization: 'Bearer ' + await token(), 'Content-Type': 'application/octet-stream', 'Dropbox-API-Arg': asciiJSON({ path, mode: 'overwrite', mute: true, autorename: false }) },
     body: blob
@@ -971,7 +1010,7 @@ const notFound = (e) => /not_found/.test(e.summary || '');
 const conflict = (e) => /conflict/.test(e.summary || '');
 
 function cleanName(s){
-  return String(s || '').normalize('NFC').replace(/[\\/:*?"<>|\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().replace(/[. ]+$/, '').slice(0, 120);
+  return String(s || '').normalize('NFC').replace(/[\\/:*?"<>|\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120).replace(/[. ]+$/, '');
 }
 const ymd = (t) => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 function folderNames(){
@@ -1020,6 +1059,17 @@ async function queueOp(op){ dbxOps.push(op); await put('meta', { k: 'ops', v: db
 function scheduleSync(){ clearTimeout(syncTimer); syncTimer = setTimeout(() => sync(), 1500); }
 
 async function syncIdea(idea, names){
+  try { await syncIdeaOnce(idea, names); }
+  catch (e) {
+    if (e.fatal || !(e.status === 409)) throw e;
+    // Dropbox's copy got out of step (folder moved/deleted/renamed outside the app, or a name in the way).
+    // Start this idea's folder over and upload everything again.
+    const s = idea.sync;
+    if (s){ s.folder = null; s.wanted = null; s.desc = null; s.takes = {}; }
+    await syncIdeaOnce(idea, names);
+  }
+}
+async function syncIdeaOnce(idea, names){
   const live = () => ideas.includes(idea);
   const persist = async () => { if (live()) await put('ideas', idea); };
   const want = names.get(idea.id);
@@ -1060,7 +1110,7 @@ async function syncIdea(idea, names){
     if (cur === name) continue;
     if (cur){
       try { await rpc('files/move_v2', { from_path: dir + '/' + cur, to_path: dir + '/' + name, autorename: false }); s.takes[t.id] = name; await persist(); continue; }
-      catch (e) { if (!notFound(e)) throw e; }
+      catch (e) { if (!notFound(e) && !conflict(e)) throw e; } // gone or blocked: just upload it fresh below
     }
     const a = await get('audio', t.id);
     if (!a) continue;
@@ -1080,21 +1130,22 @@ async function sync(manual){
   syncing = true; $('count').textContent = countText();
   let failed = null;
   try {
-    while (dbxOps.length){
-      const op = dbxOps[0];
-      try { await rpc('files/delete_v2', { path: op.path }); } catch (e) { if (!notFound(e)) throw e; }
-      dbxOps.shift(); await put('meta', { k: 'ops', v: dbxOps });
+    syncErrors.delete('ops');
+    for (const op of dbxOps.slice()){
+      try { await rpc('files/delete_v2', { path: op.path }); }
+      catch (e) { if (e.fatal) throw e; if (!notFound(e)){ failed = e; syncErrors.set('ops', reason(e)); continue; } }
+      dbxOps.splice(dbxOps.indexOf(op), 1); await put('meta', { k: 'ops', v: dbxOps });
     }
     const names = folderNames();
     for (const idea of ideas.slice()){
-      if (!needsSync(idea, names)) continue;
-      try { await syncIdea(idea, names); }
-      catch (e) { if (e.fatal) throw e; failed = e; }
+      if (!needsSync(idea, names)){ syncErrors.delete(idea.id); continue; }
+      try { await syncIdea(idea, names); syncErrors.delete(idea.id); }
+      catch (e) { if (e.fatal) throw e; failed = e; failed.title = idea.title; syncErrors.set(idea.id, reason(e)); console.warn('Dropbox sync failed for', idea.title, e); }
     }
     if (!failed){ dbx.lastSync = Date.now(); await put('meta', { k: 'dbx', v: dbx }); }
   } catch (e) { failed = e; }
   syncing = false;
-  if (failed && manual) toast(failed.fatal ? 'Dropbox needs you to sign in again' : 'Couldn’t reach Dropbox. It’ll try again.');
+  if (failed && manual) toast(failed.fatal ? 'Dropbox needs you to sign in again' : reason(failed) + '. Tap ••• to see what’s waiting.');
   if (manual && !failed) toast('Saved to Dropbox');
   render();
   if (syncAgain){ syncAgain = false; scheduleSync(); }
